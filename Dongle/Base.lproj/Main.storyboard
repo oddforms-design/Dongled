@@ -18,24 +18,56 @@
                         <subviews>
                             <view contentMode="scaleAspectFill" translatesAutoresizingMaskIntoConstraints="NO" id="i4w-W6-hCF" userLabel="coverView">
                                 <rect key="frame" x="0.0" y="0.0" width="1133" height="744"/>
-                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <subviews>
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="i7x-sW-9tD" userLabel="NoDevice">
+                                        <rect key="frame" x="441.5" y="309.5" width="250" height="125"/>
+                                        <subviews>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Scanning For Hardware" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="XPu-3O-lS4">
+                                                <rect key="frame" x="36" y="65" width="178" height="21"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="21" id="Iio-Y5-Bzq"/>
+                                                </constraints>
+                                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                                <nil key="textColor"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" animating="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="fR6-jV-KGD">
+                                                <rect key="frame" x="102" y="90" width="35" height="35"/>
+                                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                            </activityIndicatorView>
+                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchIcon" translatesAutoresizingMaskIntoConstraints="NO" id="39x-w0-pdr">
+                                                <rect key="frame" x="87.5" y="8" width="75" height="45"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="width" constant="75" id="6pN-fl-KvC"/>
+                                                    <constraint firstAttribute="height" constant="45" id="DIS-U9-l3R"/>
+                                                </constraints>
+                                            </imageView>
+                                        </subviews>
+                                        <color key="backgroundColor" red="0.96862745098039216" green="0.54117647058823526" blue="0.36078431372549019" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                                        <constraints>
+                                            <constraint firstItem="XPu-3O-lS4" firstAttribute="centerX" secondItem="i7x-sW-9tD" secondAttribute="centerX" id="L2r-w2-Tcc"/>
+                                            <constraint firstAttribute="width" constant="250" id="NMF-xb-nG2"/>
+                                            <constraint firstItem="39x-w0-pdr" firstAttribute="centerX" secondItem="i7x-sW-9tD" secondAttribute="centerX" id="VgW-P5-PBs"/>
+                                            <constraint firstItem="39x-w0-pdr" firstAttribute="top" secondItem="i7x-sW-9tD" secondAttribute="top" constant="8" id="lO2-Cl-IAW"/>
+                                            <constraint firstItem="XPu-3O-lS4" firstAttribute="top" secondItem="39x-w0-pdr" secondAttribute="bottom" constant="12" id="law-qU-KA1"/>
+                                            <constraint firstAttribute="height" constant="125" id="wjb-et-O6s"/>
+                                        </constraints>
+                                    </view>
+                                </subviews>
+                                <color key="backgroundColor" red="0.96862745098039216" green="0.54117647058823526" blue="0.36078431372549019" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                                <constraints>
+                                    <constraint firstItem="i7x-sW-9tD" firstAttribute="centerX" secondItem="i4w-W6-hCF" secondAttribute="centerX" id="oAS-Ll-0ch"/>
+                                    <constraint firstItem="i7x-sW-9tD" firstAttribute="centerY" secondItem="i4w-W6-hCF" secondAttribute="centerY" id="zGB-Qh-FP8"/>
+                                </constraints>
                             </view>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="No Device Connected" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="XPu-3O-lS4">
-                                <rect key="frame" x="483" y="363" width="166.5" height="21"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                <nil key="textColor"/>
-                                <nil key="highlightedColor"/>
-                            </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
                             <constraint firstItem="i4w-W6-hCF" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="0bT-Mq-1wk"/>
-                            <constraint firstItem="i4w-W6-hCF" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" id="CvO-hQ-LQb"/>
+                            <constraint firstItem="i4w-W6-hCF" firstAttribute="trailing" secondItem="8bC-Xf-vdC" secondAttribute="trailing" id="CvO-hQ-LQb"/>
                             <constraint firstAttribute="bottom" secondItem="i4w-W6-hCF" secondAttribute="bottom" id="QDT-3W-fCJ"/>
-                            <constraint firstItem="XPu-3O-lS4" firstAttribute="centerY" secondItem="6Tk-OE-BBY" secondAttribute="centerY" id="Uvc-lE-KRW"/>
-                            <constraint firstItem="XPu-3O-lS4" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="UwI-Aq-OIy"/>
-                            <constraint firstItem="i4w-W6-hCF" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="cpf-6z-Ouv"/>
+                            <constraint firstItem="i4w-W6-hCF" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" id="cpf-6z-Ouv"/>
                         </constraints>
                     </view>
                     <connections>
@@ -49,6 +81,7 @@
         </scene>
     </scenes>
     <resources>
+        <image name="LaunchIcon" width="324.5" height="333"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
