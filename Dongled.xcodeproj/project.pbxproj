@@ -13,9 +13,9 @@
 		3B46D2D82AA8E82C00272E45 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3B46D2D62AA8E82C00272E45 /* Main.storyboard */; };
 		3B46D2DA2AA8E82D00272E45 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3B46D2D92AA8E82D00272E45 /* Assets.xcassets */; };
 		3B46D2DD2AA8E82D00272E45 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3B46D2DB2AA8E82D00272E45 /* LaunchScreen.storyboard */; };
-		3B46D2E82AA8E82D00272E45 /* DongleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B46D2E72AA8E82D00272E45 /* DongleTests.swift */; };
-		3B46D2F22AA8E82D00272E45 /* DongleUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B46D2F12AA8E82D00272E45 /* DongleUITests.swift */; };
-		3B46D2F42AA8E82D00272E45 /* DongleUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B46D2F32AA8E82D00272E45 /* DongleUITestsLaunchTests.swift */; };
+		3B46D2E82AA8E82D00272E45 /* DongledTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B46D2E72AA8E82D00272E45 /* DongledTests.swift */; };
+		3B46D2F22AA8E82D00272E45 /* DongledUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B46D2F12AA8E82D00272E45 /* DongledUITests.swift */; };
+		3B46D2F42AA8E82D00272E45 /* DongledUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B46D2F32AA8E82D00272E45 /* DongledUITestsLaunchTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,7 +36,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		3B46D2CD2AA8E82C00272E45 /* Dongle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dongle.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3B46D2CD2AA8E82C00272E45 /* Dongled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dongled.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B46D2D02AA8E82C00272E45 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		3B46D2D22AA8E82C00272E45 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		3B46D2D42AA8E82C00272E45 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -44,11 +44,11 @@
 		3B46D2D92AA8E82D00272E45 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3B46D2DC2AA8E82D00272E45 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		3B46D2DE2AA8E82D00272E45 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		3B46D2E32AA8E82D00272E45 /* DongleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DongleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		3B46D2E72AA8E82D00272E45 /* DongleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DongleTests.swift; sourceTree = "<group>"; };
-		3B46D2ED2AA8E82D00272E45 /* DongleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DongleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		3B46D2F12AA8E82D00272E45 /* DongleUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DongleUITests.swift; sourceTree = "<group>"; };
-		3B46D2F32AA8E82D00272E45 /* DongleUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DongleUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		3B46D2E32AA8E82D00272E45 /* DongledTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DongledTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3B46D2E72AA8E82D00272E45 /* DongledTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DongledTests.swift; sourceTree = "<group>"; };
+		3B46D2ED2AA8E82D00272E45 /* DongledUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DongledUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3B46D2F12AA8E82D00272E45 /* DongledUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DongledUITests.swift; sourceTree = "<group>"; };
+		3B46D2F32AA8E82D00272E45 /* DongledUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DongledUITestsLaunchTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,9 +79,9 @@
 		3B46D2C42AA8E82C00272E45 = {
 			isa = PBXGroup;
 			children = (
-				3B46D2CF2AA8E82C00272E45 /* Dongle */,
-				3B46D2E62AA8E82D00272E45 /* DongleTests */,
-				3B46D2F02AA8E82D00272E45 /* DongleUITests */,
+				3B46D2CF2AA8E82C00272E45 /* Dongled */,
+				3B46D2E62AA8E82D00272E45 /* DongledTests */,
+				3B46D2F02AA8E82D00272E45 /* DongledUITests */,
 				3B46D2CE2AA8E82C00272E45 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -89,14 +89,14 @@
 		3B46D2CE2AA8E82C00272E45 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				3B46D2CD2AA8E82C00272E45 /* Dongle.app */,
-				3B46D2E32AA8E82D00272E45 /* DongleTests.xctest */,
-				3B46D2ED2AA8E82D00272E45 /* DongleUITests.xctest */,
+				3B46D2CD2AA8E82C00272E45 /* Dongled.app */,
+				3B46D2E32AA8E82D00272E45 /* DongledTests.xctest */,
+				3B46D2ED2AA8E82D00272E45 /* DongledUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		3B46D2CF2AA8E82C00272E45 /* Dongle */ = {
+		3B46D2CF2AA8E82C00272E45 /* Dongled */ = {
 			isa = PBXGroup;
 			children = (
 				3B46D2D02AA8E82C00272E45 /* AppDelegate.swift */,
@@ -107,32 +107,32 @@
 				3B46D2DB2AA8E82D00272E45 /* LaunchScreen.storyboard */,
 				3B46D2DE2AA8E82D00272E45 /* Info.plist */,
 			);
-			path = Dongle;
+			path = Dongled;
 			sourceTree = "<group>";
 		};
-		3B46D2E62AA8E82D00272E45 /* DongleTests */ = {
+		3B46D2E62AA8E82D00272E45 /* DongledTests */ = {
 			isa = PBXGroup;
 			children = (
-				3B46D2E72AA8E82D00272E45 /* DongleTests.swift */,
+				3B46D2E72AA8E82D00272E45 /* DongledTests.swift */,
 			);
-			path = DongleTests;
+			path = DongledTests;
 			sourceTree = "<group>";
 		};
-		3B46D2F02AA8E82D00272E45 /* DongleUITests */ = {
+		3B46D2F02AA8E82D00272E45 /* DongledUITests */ = {
 			isa = PBXGroup;
 			children = (
-				3B46D2F12AA8E82D00272E45 /* DongleUITests.swift */,
-				3B46D2F32AA8E82D00272E45 /* DongleUITestsLaunchTests.swift */,
+				3B46D2F12AA8E82D00272E45 /* DongledUITests.swift */,
+				3B46D2F32AA8E82D00272E45 /* DongledUITestsLaunchTests.swift */,
 			);
-			path = DongleUITests;
+			path = DongledUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		3B46D2CC2AA8E82C00272E45 /* Dongle */ = {
+		3B46D2CC2AA8E82C00272E45 /* Dongled */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 3B46D2F72AA8E82D00272E45 /* Build configuration list for PBXNativeTarget "Dongle" */;
+			buildConfigurationList = 3B46D2F72AA8E82D00272E45 /* Build configuration list for PBXNativeTarget "Dongled" */;
 			buildPhases = (
 				3B46D2C92AA8E82C00272E45 /* Sources */,
 				3B46D2CA2AA8E82C00272E45 /* Frameworks */,
@@ -142,14 +142,14 @@
 			);
 			dependencies = (
 			);
-			name = Dongle;
+			name = Dongled;
 			productName = Dongle;
-			productReference = 3B46D2CD2AA8E82C00272E45 /* Dongle.app */;
+			productReference = 3B46D2CD2AA8E82C00272E45 /* Dongled.app */;
 			productType = "com.apple.product-type.application";
 		};
-		3B46D2E22AA8E82D00272E45 /* DongleTests */ = {
+		3B46D2E22AA8E82D00272E45 /* DongledTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 3B46D2FA2AA8E82D00272E45 /* Build configuration list for PBXNativeTarget "DongleTests" */;
+			buildConfigurationList = 3B46D2FA2AA8E82D00272E45 /* Build configuration list for PBXNativeTarget "DongledTests" */;
 			buildPhases = (
 				3B46D2DF2AA8E82D00272E45 /* Sources */,
 				3B46D2E02AA8E82D00272E45 /* Frameworks */,
@@ -160,14 +160,14 @@
 			dependencies = (
 				3B46D2E52AA8E82D00272E45 /* PBXTargetDependency */,
 			);
-			name = DongleTests;
+			name = DongledTests;
 			productName = DongleTests;
-			productReference = 3B46D2E32AA8E82D00272E45 /* DongleTests.xctest */;
+			productReference = 3B46D2E32AA8E82D00272E45 /* DongledTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		3B46D2EC2AA8E82D00272E45 /* DongleUITests */ = {
+		3B46D2EC2AA8E82D00272E45 /* DongledUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 3B46D2FD2AA8E82D00272E45 /* Build configuration list for PBXNativeTarget "DongleUITests" */;
+			buildConfigurationList = 3B46D2FD2AA8E82D00272E45 /* Build configuration list for PBXNativeTarget "DongledUITests" */;
 			buildPhases = (
 				3B46D2E92AA8E82D00272E45 /* Sources */,
 				3B46D2EA2AA8E82D00272E45 /* Frameworks */,
@@ -178,9 +178,9 @@
 			dependencies = (
 				3B46D2EF2AA8E82D00272E45 /* PBXTargetDependency */,
 			);
-			name = DongleUITests;
+			name = DongledUITests;
 			productName = DongleUITests;
-			productReference = 3B46D2ED2AA8E82D00272E45 /* DongleUITests.xctest */;
+			productReference = 3B46D2ED2AA8E82D00272E45 /* DongledUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -206,7 +206,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 3B46D2C82AA8E82C00272E45 /* Build configuration list for PBXProject "Dongle" */;
+			buildConfigurationList = 3B46D2C82AA8E82C00272E45 /* Build configuration list for PBXProject "Dongled" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -219,9 +219,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				3B46D2CC2AA8E82C00272E45 /* Dongle */,
-				3B46D2E22AA8E82D00272E45 /* DongleTests */,
-				3B46D2EC2AA8E82D00272E45 /* DongleUITests */,
+				3B46D2CC2AA8E82C00272E45 /* Dongled */,
+				3B46D2E22AA8E82D00272E45 /* DongledTests */,
+				3B46D2EC2AA8E82D00272E45 /* DongledUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -268,7 +268,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3B46D2E82AA8E82D00272E45 /* DongleTests.swift in Sources */,
+				3B46D2E82AA8E82D00272E45 /* DongledTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -276,8 +276,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3B46D2F22AA8E82D00272E45 /* DongleUITests.swift in Sources */,
-				3B46D2F42AA8E82D00272E45 /* DongleUITestsLaunchTests.swift in Sources */,
+				3B46D2F22AA8E82D00272E45 /* DongledUITests.swift in Sources */,
+				3B46D2F42AA8E82D00272E45 /* DongledUITestsLaunchTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -286,12 +286,12 @@
 /* Begin PBXTargetDependency section */
 		3B46D2E52AA8E82D00272E45 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 3B46D2CC2AA8E82C00272E45 /* Dongle */;
+			target = 3B46D2CC2AA8E82C00272E45 /* Dongled */;
 			targetProxy = 3B46D2E42AA8E82D00272E45 /* PBXContainerItemProxy */;
 		};
 		3B46D2EF2AA8E82D00272E45 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 3B46D2CC2AA8E82C00272E45 /* Dongle */;
+			target = 3B46D2CC2AA8E82C00272E45 /* Dongled */;
 			targetProxy = 3B46D2EE2AA8E82D00272E45 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -442,10 +442,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = T6X6A8CF6V;
+				DEVELOPMENT_TEAM = V2F5S52T3Q;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Dongle/Info.plist;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Allow access to External Video Devices";
+				INFOPLIST_FILE = Dongled/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Required to Access External Video Devices";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -456,7 +456,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = oddforms.Dongle;
+				PRODUCT_BUNDLE_IDENTIFIER = oddforms.Dongled;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -473,10 +473,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = T6X6A8CF6V;
+				DEVELOPMENT_TEAM = V2F5S52T3Q;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Dongle/Info.plist;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Allow access to External Video Devices";
+				INFOPLIST_FILE = Dongled/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Required to Access External Video Devices";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -487,7 +487,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = oddforms.Dongle;
+				PRODUCT_BUNDLE_IDENTIFIER = oddforms.Dongled;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -512,7 +512,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dongle.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dongle";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dongled.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dongled";
 			};
 			name = Debug;
 		};
@@ -531,7 +531,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dongle.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dongle";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dongled.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dongled";
 			};
 			name = Release;
 		};
@@ -572,7 +572,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		3B46D2C82AA8E82C00272E45 /* Build configuration list for PBXProject "Dongle" */ = {
+		3B46D2C82AA8E82C00272E45 /* Build configuration list for PBXProject "Dongled" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3B46D2F52AA8E82D00272E45 /* Debug */,
@@ -581,7 +581,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		3B46D2F72AA8E82D00272E45 /* Build configuration list for PBXNativeTarget "Dongle" */ = {
+		3B46D2F72AA8E82D00272E45 /* Build configuration list for PBXNativeTarget "Dongled" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3B46D2F82AA8E82D00272E45 /* Debug */,
@@ -590,7 +590,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		3B46D2FA2AA8E82D00272E45 /* Build configuration list for PBXNativeTarget "DongleTests" */ = {
+		3B46D2FA2AA8E82D00272E45 /* Build configuration list for PBXNativeTarget "DongledTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3B46D2FB2AA8E82D00272E45 /* Debug */,
@@ -599,7 +599,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		3B46D2FD2AA8E82D00272E45 /* Build configuration list for PBXNativeTarget "DongleUITests" */ = {
+		3B46D2FD2AA8E82D00272E45 /* Build configuration list for PBXNativeTarget "DongledUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3B46D2FE2AA8E82D00272E45 /* Debug */,

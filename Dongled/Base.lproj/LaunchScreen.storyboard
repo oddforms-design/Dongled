@@ -26,7 +26,7 @@
                                         </constraints>
                                     </imageView>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" usesAttributedText="YES" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="lTE-1r-pY5">
-                                        <rect key="frame" x="120" y="133" width="400.5" height="40"/>
+                                        <rect key="frame" x="140" y="133" width="400.5" height="40"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="40" id="jeG-KO-ZiG"/>
                                         </constraints>
@@ -40,12 +40,12 @@
                                         </attributedString>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Dongle" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="avS-yq-PNZ">
-                                        <rect key="frame" x="212" y="0.0" width="358" height="125"/>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Dongled" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="avS-yq-PNZ">
+                                        <rect key="frame" x="203" y="0.0" width="392" height="125"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="125" id="3TJ-gz-cm9"/>
                                         </constraints>
-                                        <fontDescription key="fontDescription" name="Menlo-Regular" family="Menlo" pointSize="99"/>
+                                        <fontDescription key="fontDescription" name="Menlo-Regular" family="Menlo" pointSize="93"/>
                                         <nil key="textColor"/>
                                         <nil key="highlightedColor"/>
                                     </label>
@@ -55,11 +55,11 @@
                                     <constraint firstItem="tFA-fH-fek" firstAttribute="top" secondItem="vvn-JS-nA0" secondAttribute="top" id="1pE-Fb-bC3"/>
                                     <constraint firstAttribute="width" constant="650" id="4Lf-89-qJA"/>
                                     <constraint firstItem="lTE-1r-pY5" firstAttribute="top" secondItem="tFA-fH-fek" secondAttribute="bottom" constant="8" symbolic="YES" id="947-QU-9Jp"/>
-                                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="lTE-1r-pY5" secondAttribute="trailing" constant="120" id="AUF-CZ-cup"/>
-                                    <constraint firstItem="lTE-1r-pY5" firstAttribute="leading" secondItem="vvn-JS-nA0" secondAttribute="leading" constant="120" id="ONk-bP-DMc"/>
+                                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="lTE-1r-pY5" secondAttribute="trailing" constant="100" id="AUF-CZ-cup"/>
+                                    <constraint firstItem="lTE-1r-pY5" firstAttribute="leading" secondItem="vvn-JS-nA0" secondAttribute="leading" constant="140" id="ONk-bP-DMc"/>
                                     <constraint firstAttribute="height" constant="175" id="SJN-e4-a4K"/>
-                                    <constraint firstItem="avS-yq-PNZ" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="tFA-fH-fek" secondAttribute="trailing" constant="20" id="XAJ-Kf-jDF"/>
-                                    <constraint firstAttribute="trailing" secondItem="avS-yq-PNZ" secondAttribute="trailing" constant="80" id="cmq-gv-DPe"/>
+                                    <constraint firstItem="avS-yq-PNZ" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="tFA-fH-fek" secondAttribute="trailing" constant="10" id="XAJ-Kf-jDF"/>
+                                    <constraint firstAttribute="trailing" secondItem="avS-yq-PNZ" secondAttribute="trailing" constant="55" id="cmq-gv-DPe"/>
                                     <constraint firstItem="tFA-fH-fek" firstAttribute="leading" secondItem="vvn-JS-nA0" secondAttribute="leading" constant="50" id="mzs-AO-Q9P"/>
                                     <constraint firstItem="avS-yq-PNZ" firstAttribute="top" secondItem="vvn-JS-nA0" secondAttribute="top" id="qEX-tn-LOF"/>
                                 </constraints>

@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "3B46D2CC2AA8E82C00272E45"
-               BuildableName = "Dongle.app"
-               BlueprintName = "Dongle"
-               ReferencedContainer = "container:Dongle.xcodeproj">
+               BuildableName = "Dongled.app"
+               BlueprintName = "Dongled"
+               ReferencedContainer = "container:Dongled.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -35,9 +35,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "3B46D2E22AA8E82D00272E45"
-               BuildableName = "DongleTests.xctest"
-               BlueprintName = "DongleTests"
-               ReferencedContainer = "container:Dongle.xcodeproj">
+               BuildableName = "DongledTests.xctest"
+               BlueprintName = "DongledTests"
+               ReferencedContainer = "container:Dongled.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -46,9 +46,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "3B46D2EC2AA8E82D00272E45"
-               BuildableName = "DongleUITests.xctest"
-               BlueprintName = "DongleUITests"
-               ReferencedContainer = "container:Dongle.xcodeproj">
+               BuildableName = "DongledUITests.xctest"
+               BlueprintName = "DongledUITests"
+               ReferencedContainer = "container:Dongled.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -68,9 +68,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3B46D2CC2AA8E82C00272E45"
-            BuildableName = "Dongle.app"
-            BlueprintName = "Dongle"
-            ReferencedContainer = "container:Dongle.xcodeproj">
+            BuildableName = "Dongled.app"
+            BlueprintName = "Dongled"
+            ReferencedContainer = "container:Dongled.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -85,9 +85,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3B46D2CC2AA8E82C00272E45"
-            BuildableName = "Dongle.app"
-            BlueprintName = "Dongle"
-            ReferencedContainer = "container:Dongle.xcodeproj">
+            BuildableName = "Dongled.app"
+            BlueprintName = "Dongled"
+            ReferencedContainer = "container:Dongled.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

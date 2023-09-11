@@ -8,6 +8,7 @@ class ViewController: UIViewController {
     var captureSession: AVCaptureSession?
     var previewLayer: AVCaptureVideoPreviewLayer?
     var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+    var isDeviceConnectedAtStartup: Bool = false
     
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
@@ -16,17 +17,20 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
+        coverView.isHidden = true  // Hide the video feed at first
         
         // Register for camera connect/disconnect notifications
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceConnected), name: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceDisconnected), name: NSNotification.Name.AVCaptureDeviceWasDisconnected, object: nil)
         
         setupCaptureSession()
-        coverView.isHidden = true  // Hide the video feed at first
+        
     }
 
     func setupCaptureSession() {
-        captureSession = AVCaptureSession()
+        if captureSession == nil {
+            captureSession = AVCaptureSession()
+        }
         
         guard let session = captureSession else {
             print("Error initializing capture session")
@@ -38,23 +42,28 @@ class ViewController: UIViewController {
         let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
         
         if let device = discoverySession.devices.first {
-            setupDeviceInput(for: device)
-            self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: self.previewLayer)
-            applyVideoRotationForPreview()
+            isDeviceConnectedAtStartup = true
+            configureExternalDevice(device)
+           
+        } else {
             DispatchQueue.main.async {
-                        UIApplication.shared.isIdleTimerDisabled = true
-                    }
-            isStatusBarHidden = true
-        } else if let rearCamera = AVCaptureDevice.default(for: .video) {
-            setupDeviceInput(for: rearCamera)
-            DispatchQueue.main.async {
-                        UIApplication.shared.isIdleTimerDisabled = false
-                    }
-            isStatusBarHidden = false
-            DispatchQueue.main.async {
+                UIApplication.shared.isIdleTimerDisabled = false
+                self.isStatusBarHidden = false
                 self.noDeviceLabel.isHidden = false
                 self.coverView.isHidden = false
             }
+        }
+    }
+    
+    func configureExternalDevice(_ device: AVCaptureDevice) {
+        setupDeviceInput(for: device)
+        self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: self.previewLayer)
+        applyVideoRotationForPreview()
+        isStatusBarHidden = true
+        DispatchQueue.main.async {
+            UIApplication.shared.isIdleTimerDisabled = true
+            self.noDeviceLabel.isHidden = true
+            self.coverView.isHidden = true
         }
     }
     
@@ -81,16 +90,21 @@ class ViewController: UIViewController {
     }
 
     func setupPreviewLayer(for session: AVCaptureSession) {
+        // Remove the old preview layer if it exists
+        previewLayer?.removeFromSuperlayer()
+        
         previewLayer = AVCaptureVideoPreviewLayer(session: session)
         guard let previewLayer = previewLayer else {
             print("Error setting up preview layer")
             return
         }
         
-        previewLayer.frame = view.bounds
-        previewLayer.videoGravity = .resizeAspect
-        previewLayer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))
-        view.layer.insertSublayer(previewLayer, at: 0)
+        DispatchQueue.main.async {
+            previewLayer.frame = self.view.bounds
+            previewLayer.videoGravity = .resizeAspect
+            previewLayer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))
+            self.view.layer.insertSublayer(previewLayer, at: 0)
+        }
     }
     
     func switchTo(device: AVCaptureDevice) {
@@ -116,50 +130,34 @@ class ViewController: UIViewController {
     }
     
     @objc func handleDeviceConnected(notification: Notification) {
-        
-        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
-        
-        print("Session preset on device connect: \(captureSession?.sessionPreset.rawValue ?? "none")")
-        
-        DispatchQueue.main.async {
-                    UIApplication.shared.isIdleTimerDisabled = true
-                }
-        
-        isStatusBarHidden = true
-        
-        guard let device = discoverySession.devices.first else {
-            print("External device not found in discovery session!")
+        if !isDeviceConnectedAtStartup {
+            setupCaptureSession()
+            isDeviceConnectedAtStartup = true  // reset the flag
+            print("Session Starting From HotPlug")
             return
         }
         
-        switchTo(device: device)
-        self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: self.previewLayer)
-        applyVideoRotationForPreview()
-        
-        DispatchQueue.main.async {
-            self.noDeviceLabel.isHidden = true
-            self.coverView.isHidden = true
+        if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
+            switchTo(device: device)
+            configureExternalDevice(device)
+            
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.captureSession?.startRunning()  // Start the session again
+            }
+            print("Session disconnect")
         }
     }
-
+    
     @objc func handleDeviceDisconnected(notification: Notification) {
         guard let device = notification.object as? AVCaptureDevice, device.deviceType == .external else {
             return
         }
         
-        print("Session preset on device disconnect: \(captureSession?.sessionPreset.rawValue ?? "none")")
+        print("Session disconnect")
         
         DispatchQueue.main.async {
-                    UIApplication.shared.isIdleTimerDisabled = false
-                }
-        
-        isStatusBarHidden = false
-        
-        for input in captureSession?.inputs ?? [] {
-            captureSession?.removeInput(input)
-        }
-        
-        DispatchQueue.main.async {
+            UIApplication.shared.isIdleTimerDisabled = false
+            self.isStatusBarHidden = false
             self.noDeviceLabel.isHidden = false
             self.coverView.isHidden = false
         }
