@@ -43,7 +43,33 @@ class ViewController: UIViewController {
         
         if let device = discoverySession.devices.first {
             isDeviceConnectedAtStartup = true
+            
             configureExternalDevice(device)
+            
+            let audioDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external, .microphone], mediaType: .audio, position: .unspecified)
+                        
+            print("Found \(audioDiscoverySession.devices.count) audio devices.")
+            
+            for device in audioDiscoverySession.devices {
+                print("Audio device name: \(device.localizedName)")
+            }
+
+            if let audioDevice = audioDiscoverySession.devices.first(where: { $0.deviceType == .microphone }) {
+                print("Attempting to configure the external audio device.")
+                do {
+                    let audioInput = try AVCaptureDeviceInput(device: audioDevice)
+                    if session.canAddInput(audioInput) {
+                        session.addInput(audioInput)
+                        print("Added external audio input: \(audioDevice.localizedName)")
+                    } else {
+                        print("Cannot add external audio input to the session.")
+                    }
+                } catch {
+                    print("Error setting up external audio capture session input: \(error)")
+                }
+            } else {
+                print("No external audio device found.")
+            }
            
         } else {
             DispatchQueue.main.async {
