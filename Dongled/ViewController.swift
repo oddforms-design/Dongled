@@ -56,9 +56,8 @@ class ViewController: UIViewController {
     }
     
     func configureExternalDevice(_ device: AVCaptureDevice) {
+        configureCameraForHighestFrameRate(device: device)
         setupDeviceInput(for: device)
-        self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: self.previewLayer)
-        applyVideoRotationForPreview()
         isStatusBarHidden = true
         DispatchQueue.main.async {
             UIApplication.shared.isIdleTimerDisabled = true
@@ -108,17 +107,32 @@ class ViewController: UIViewController {
             previewLayer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))
             self.view.layer.insertSublayer(previewLayer, at: 0)
         }
+        
+        if let device = self.captureSession?.inputs.first as? AVCaptureDeviceInput {
+                    self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device.device, previewLayer: previewLayer)
+                    self.applyVideoRotationForPreview()
+                }
+        
     }
     
     @objc func handleDeviceConnected(notification: Notification) {
         if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
             
             if !isDeviceConnectedAtStartup {
-                // This handles the initial startup
-                setupCaptureSession()
+                // This creates a clean startup
+                configureExternalDevice(device)
                 isDeviceConnectedAtStartup = true  // reset the flag
                 print("Session Launching From HotPlug")
-                return
+                // Clean device input from no device at launch
+                if let session = captureSession {
+                    for input in session.inputs {
+                        if let deviceInput = input as? AVCaptureDeviceInput, deviceInput.device == device {
+                            session.removeInput(deviceInput)
+                        }
+                    }
+                }
+                setupCaptureSession()
+                
             } else {
                 // For reconnection, switch to the device
                 configureExternalDevice(device)
@@ -152,6 +166,40 @@ class ViewController: UIViewController {
             self.isStatusBarHidden = false
             self.noDeviceLabel.isHidden = false
             self.coverView.isHidden = false
+        }
+    }
+    func configureCameraForHighestFrameRate(device: AVCaptureDevice) {
+        
+        var bestFormat: AVCaptureDevice.Format?
+        var bestFrameRateRange: AVFrameRateRange?
+
+
+        for format in device.formats {
+            for range in format.videoSupportedFrameRateRanges {
+                if range.maxFrameRate > bestFrameRateRange?.maxFrameRate ?? 0 {
+                    bestFormat = format
+                    bestFrameRateRange = range
+                }
+            }
+        }
+        
+        if let bestFormat = bestFormat,
+           let bestFrameRateRange = bestFrameRateRange {
+            do {
+                try device.lockForConfiguration()
+                
+                // Set the device's active format.
+                device.activeFormat = bestFormat
+                
+                // Set the device's min/max frame duration.
+                let duration = bestFrameRateRange.minFrameDuration
+                device.activeVideoMinFrameDuration = duration
+                device.activeVideoMaxFrameDuration = duration
+                
+                device.unlockForConfiguration()
+            } catch {
+                // Handle error.
+            }
         }
     }
     
