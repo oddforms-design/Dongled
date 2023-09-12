@@ -144,7 +144,6 @@ class ViewController: UIViewController {
             DispatchQueue.global(qos: .userInitiated).async {
                 self.captureSession?.startRunning()  // Start the session again
             }
-            print("Session disconnect")
         }
     }
     
