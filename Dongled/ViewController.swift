@@ -70,12 +70,15 @@ class ViewController: UIViewController {
     func setupDeviceInput(for device: AVCaptureDevice) {
         do {
             let input = try AVCaptureDeviceInput(device: device)
-            guard let session = captureSession, session.canAddInput(input) else {
-                print("Can't add input to the session")
+            guard let session = captureSession else {
+                print("Session is nil")
                 return
             }
+            if session.canAddInput(input) {
+                session.addInput(input)
+                print("Added input: \(session.inputs)")
+            }
             
-            session.addInput(input)
             DispatchQueue.main.async {
                 self.noDeviceLabel.isHidden = true
             }
@@ -88,7 +91,7 @@ class ViewController: UIViewController {
             print("Error setting up capture session input: \(error)")
         }
     }
-
+  
     func setupPreviewLayer(for session: AVCaptureSession) {
         // Remove the old preview layer if it exists
         previewLayer?.removeFromSuperlayer()
@@ -107,53 +110,43 @@ class ViewController: UIViewController {
         }
     }
     
-    func switchTo(device: AVCaptureDevice) {
-        guard let session = captureSession else {
-            print("Capture session not available")
-            return
-        }
-        
-        session.beginConfiguration()
-        
-        for input in session.inputs {
-            session.removeInput(input)
-        }
-        
-        do {
-            let newInput = try AVCaptureDeviceInput(device: device)
-            session.addInput(newInput)
-        } catch {
-            print("Error switching to device: \(error)")
-        }
-        
-        session.commitConfiguration()
-    }
-    
     @objc func handleDeviceConnected(notification: Notification) {
-        if !isDeviceConnectedAtStartup {
-            setupCaptureSession()
-            isDeviceConnectedAtStartup = true  // reset the flag
-            print("Session Starting From HotPlug")
-            return
-        }
-        
         if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
-            switchTo(device: device)
-            configureExternalDevice(device)
             
-            DispatchQueue.global(qos: .userInitiated).async {
-                self.captureSession?.startRunning()  // Start the session again
+            if !isDeviceConnectedAtStartup {
+                // This handles the initial startup
+                setupCaptureSession()
+                isDeviceConnectedAtStartup = true  // reset the flag
+                print("Session Launching From HotPlug")
+                return
+            } else {
+                // For reconnection, switch to the device
+                configureExternalDevice(device)
+
+                DispatchQueue.global(qos: .userInitiated).async {
+                    self.captureSession?.startRunning()  // Start the session again
+                }
+                print("Session Resuming From HotPlug")
             }
         }
     }
-    
+
     @objc func handleDeviceDisconnected(notification: Notification) {
         guard let device = notification.object as? AVCaptureDevice, device.deviceType == .external else {
             return
         }
-        
+
+        // Remove input associated with disconnected device
+        if let session = captureSession {
+            for input in session.inputs {
+                if let deviceInput = input as? AVCaptureDeviceInput, deviceInput.device == device {
+                    session.removeInput(deviceInput)
+                }
+            }
+        }
+
         print("Session disconnect")
-        
+
         DispatchQueue.main.async {
             UIApplication.shared.isIdleTimerDisabled = false
             self.isStatusBarHidden = false
