@@ -1,7 +1,7 @@
 import UIKit
 import AVFoundation
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDelegate {
 
     @IBOutlet weak var noDeviceLabel: UILabel!
     @IBOutlet weak var coverView: UIView!
@@ -9,6 +9,12 @@ class ViewController: UIViewController {
     var previewLayer: AVCaptureVideoPreviewLayer?
     var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
     var isDeviceConnectedAtStartup: Bool = false
+    
+    var audioEngine: AVAudioEngine!
+    var audioPlayerNode: AVAudioPlayerNode!
+    var audioOutput: AVCaptureAudioDataOutput!
+    
+  
     
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
@@ -24,9 +30,10 @@ class ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceDisconnected), name: NSNotification.Name.AVCaptureDeviceWasDisconnected, object: nil)
         
         setupCaptureSession()
+        setupAudioEngine()
         
     }
-
+    
     func setupCaptureSession() {
         if captureSession == nil {
             captureSession = AVCaptureSession()
@@ -46,30 +53,8 @@ class ViewController: UIViewController {
             
             configureExternalDevice(device)
             
-            let audioDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external, .microphone], mediaType: .audio, position: .unspecified)
-                        
-            print("Found \(audioDiscoverySession.devices.count) audio devices.")
+            configureAudio()
             
-            for device in audioDiscoverySession.devices {
-                print("Audio device name: \(device.localizedName)")
-            }
-
-            if let audioDevice = audioDiscoverySession.devices.first(where: { $0.deviceType == .microphone }) {
-                print("Attempting to configure the external audio device.")
-                do {
-                    let audioInput = try AVCaptureDeviceInput(device: audioDevice)
-                    if session.canAddInput(audioInput) {
-                        session.addInput(audioInput)
-                        print("Added external audio input: \(audioDevice.localizedName)")
-                    } else {
-                        print("Cannot add external audio input to the session.")
-                    }
-                } catch {
-                    print("Error setting up external audio capture session input: \(error)")
-                }
-            } else {
-                print("No external audio device found.")
-            }
            
         } else {
             DispatchQueue.main.async {
@@ -251,9 +236,132 @@ class ViewController: UIViewController {
     override var prefersStatusBarHidden: Bool {
         return isStatusBarHidden
     }
-
+    
     deinit {
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasDisconnected, object: nil)
+    }
+    
+    // audio
+    
+    func setupAudioEngine() {
+        
+        audioEngine = AVAudioEngine()
+        audioPlayerNode = AVAudioPlayerNode()
+        audioEngine.attach(audioPlayerNode)
+        audioEngine.connect(audioPlayerNode, to: audioEngine.mainMixerNode, format: nil)
+        audioPlayerNode.volume = 1.0
+    }
+    
+    func configureAudio() {
+        
+        guard let session = captureSession else {
+            print("Session is nil")
+            return
+        }
+        
+        let audioDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external, .microphone], mediaType: .audio, position: .unspecified)
+                    
+        print("Found \(audioDiscoverySession.devices.count) audio devices.")
+        
+        for device in audioDiscoverySession.devices {
+            print("Audio device name: \(device.localizedName)")
+        }
+
+        if let audioDevice = audioDiscoverySession.devices.first(where: { $0.deviceType == .microphone }) {
+            print("Attempting to configure the external audio device.")
+            do {
+                let audioInput = try AVCaptureDeviceInput(device: audioDevice)
+                if session.canAddInput(audioInput) {
+                    session.addInput(audioInput)
+                    print("Added external audio input: \(audioDevice.localizedName)")
+                } else {
+                    print("Cannot add external audio input to the session.")
+                }
+            } catch {
+                print("Error setting up external audio capture session input: \(error)")
+            }
+        } else {
+            print("No external audio device found.")
+        }
+        audioOutput = AVCaptureAudioDataOutput()
+        audioOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "audioQueue"))
+        if session.canAddOutput(audioOutput) {
+            session.addOutput(audioOutput)
+        }
+    }
+    
+    func convertSampleBufferToStereoPCMBuffer(_ sampleBuffer: CMSampleBuffer) -> AVAudioPCMBuffer? {
+        guard let dataBuffer = CMSampleBufferGetDataBuffer(sampleBuffer) else {
+            print("Can't get data buffer from sample buffer")
+            return nil
+        }
+
+        var lengthAtOffsetOut: size_t = 0
+        var totalLengthOut: size_t = 0
+        var dataPointerOut: UnsafeMutablePointer<Int8>?
+        
+        let status = CMBlockBufferGetDataPointer(dataBuffer, atOffset: 0, lengthAtOffsetOut: &lengthAtOffsetOut, totalLengthOut: &totalLengthOut, dataPointerOut: &dataPointerOut)
+
+        guard status == kCMBlockBufferNoErr, let dataPointer = dataPointerOut else {
+            print("Error retrieving data pointer from block buffer")
+            return nil
+        }
+        
+        let data = Data(bytes: dataPointer, count: totalLengthOut)
+        
+        return convertDataToStereoPCM(data: data)
+    }
+    
+    func convertDataToStereoPCM(data: Data) -> AVAudioPCMBuffer? {
+        // Assuming data is 16-bit samples and you want to convert it to stereo
+        guard let audioFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 44100, channels: 2, interleaved: false) else {
+            print("Failed to create audio format.")
+            return nil
+        }
+
+        // Allocate the PCM buffer
+        let pcmBuffer = AVAudioPCMBuffer(pcmFormat: audioFormat, frameCapacity: AVAudioFrameCount(data.count / 2))!
+        pcmBuffer.frameLength = pcmBuffer.frameCapacity
+        
+        // Copy mono data into the stereo buffer, duplicating for both channels
+        let channels = UnsafeBufferPointer(start: pcmBuffer.int16ChannelData, count: 2) // Expecting 2 channels for stereo
+        
+        data.withUnsafeBytes { ptr in
+            let dataBytes = ptr.bindMemory(to: Int16.self)
+            for frameIndex in 0..<pcmBuffer.frameLength {
+                let sampleValue = dataBytes[Int(frameIndex)]
+                channels[0][Int(frameIndex)] = sampleValue
+                channels[1][Int(frameIndex)] = sampleValue // Duplicate the data for stereo
+            }
+        }
+        
+        return pcmBuffer
+    }
+}
+
+extension ViewController {
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        
+        if let format = CMSampleBufferGetFormatDescription(sampleBuffer), let streamDescription = CMAudioFormatDescriptionGetStreamBasicDescription(format) {
+            print("Sample rate: \(streamDescription.pointee.mSampleRate)")
+            print("Channels: \(streamDescription.pointee.mChannelsPerFrame)")
+        } else {
+            print("Error: Could not retrieve format or streamDescription.")
+        }
+       
+        guard let pcmBuffer = convertSampleBufferToStereoPCMBuffer(sampleBuffer) else { return }
+        audioPlayerNode.scheduleBuffer(pcmBuffer, completionHandler: nil)
+
+        if !audioEngine.isRunning {
+            print("audioPlayerNode: \(String(describing: audioPlayerNode))") // Should not be nil
+            print("mainMixerNode: \(audioEngine.mainMixerNode)") // Should not be nil
+            do {
+                try audioEngine.start()
+                audioPlayerNode.play()
+            } catch {
+                print("Error starting audio engine: \(error)")
+            }
+        }
     }
 }
