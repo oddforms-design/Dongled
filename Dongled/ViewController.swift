@@ -327,7 +327,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         pcmBuffer.frameLength = pcmBuffer.frameCapacity
 
         let channel = pcmBuffer.floatChannelData![0]
-        let dataBytes = UnsafeMutableRawPointer(dataPointer).assumingMemoryBound(to: Int16.self) 
+        let dataBytes = UnsafeMutableRawPointer(dataPointer).assumingMemoryBound(to: Int16.self)
 
         for frameIndex in 0..<pcmBuffer.frameLength {
             channel[Int(frameIndex)] = Float(dataBytes[Int(frameIndex)]) / Float(Int16.max)
