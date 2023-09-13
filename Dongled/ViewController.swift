@@ -2,7 +2,7 @@ import UIKit
 import AVFoundation
 
 class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDelegate {
-
+    
     @IBOutlet weak var noDeviceLabel: UILabel!
     @IBOutlet weak var coverView: UIView!
     var captureSession: AVCaptureSession?
@@ -14,7 +14,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     var audioPlayerNode: AVAudioPlayerNode!
     var audioOutput: AVCaptureAudioDataOutput!
     
-  
+    
     
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
@@ -55,7 +55,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             
             configureAudio()
             
-           
+            
         } else {
             DispatchQueue.main.async {
                 UIApplication.shared.isIdleTimerDisabled = false
@@ -101,7 +101,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             print("Error setting up capture session input: \(error)")
         }
     }
-  
+    
     func setupPreviewLayer(for session: AVCaptureSession) {
         // Remove the old preview layer if it exists
         previewLayer?.removeFromSuperlayer()
@@ -120,9 +120,9 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         }
         
         if let device = self.captureSession?.inputs.first as? AVCaptureDeviceInput {
-                    self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device.device, previewLayer: previewLayer)
-                    self.applyVideoRotationForPreview()
-                }
+            self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device.device, previewLayer: previewLayer)
+            self.applyVideoRotationForPreview()
+        }
         
     }
     
@@ -147,7 +147,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             } else {
                 // For reconnection, switch to the device
                 configureExternalDevice(device)
-
+                
                 DispatchQueue.global(qos: .userInitiated).async {
                     self.captureSession?.startRunning()  // Start the session again
                 }
@@ -155,12 +155,12 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             }
         }
     }
-
+    
     @objc func handleDeviceDisconnected(notification: Notification) {
         guard let device = notification.object as? AVCaptureDevice, device.deviceType == .external else {
             return
         }
-
+        
         // Remove input associated with disconnected device
         if let session = captureSession {
             for input in session.inputs {
@@ -169,9 +169,9 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
                 }
             }
         }
-
+        
         print("Session disconnect")
-
+        
         DispatchQueue.main.async {
             UIApplication.shared.isIdleTimerDisabled = false
             self.isStatusBarHidden = false
@@ -183,8 +183,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         
         var bestFormat: AVCaptureDevice.Format?
         var bestFrameRateRange: AVFrameRateRange?
-
-
+        
+        
         for format in device.formats {
             for range in format.videoSupportedFrameRateRanges {
                 if range.maxFrameRate > bestFrameRateRange?.maxFrameRate ?? 0 {
@@ -232,7 +232,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             }
         }
     }
-
+    
     override var prefersStatusBarHidden: Bool {
         return isStatusBarHidden
     }
@@ -245,13 +245,16 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     // audio
     
     func setupAudioEngine() {
-        
         audioEngine = AVAudioEngine()
         audioPlayerNode = AVAudioPlayerNode()
+
+        let monoFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: 1, interleaved: false)
+
         audioEngine.attach(audioPlayerNode)
-        audioEngine.connect(audioPlayerNode, to: audioEngine.mainMixerNode, format: nil)
+        audioEngine.connect(audioPlayerNode, to: audioEngine.mainMixerNode, format: monoFormat)
         audioPlayerNode.volume = 1.0
     }
+
     
     func configureAudio() {
         
@@ -261,13 +264,13 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         }
         
         let audioDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external, .microphone], mediaType: .audio, position: .unspecified)
-                    
+        
         print("Found \(audioDiscoverySession.devices.count) audio devices.")
         
         for device in audioDiscoverySession.devices {
             print("Audio device name: \(device.localizedName)")
         }
-
+        
         if let audioDevice = audioDiscoverySession.devices.first(where: { $0.deviceType == .microphone }) {
             print("Attempting to configure the external audio device.")
             do {
@@ -291,18 +294,18 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         }
     }
     
-    func convertSampleBufferToStereoPCMBuffer(_ sampleBuffer: CMSampleBuffer) -> AVAudioPCMBuffer? {
+    func convertSampleBufferToMonoPCMBuffer(_ sampleBuffer: CMSampleBuffer) -> AVAudioPCMBuffer? {
         guard let dataBuffer = CMSampleBufferGetDataBuffer(sampleBuffer) else {
             print("Can't get data buffer from sample buffer")
             return nil
         }
-
+        
         var lengthAtOffsetOut: size_t = 0
         var totalLengthOut: size_t = 0
         var dataPointerOut: UnsafeMutablePointer<Int8>?
         
         let status = CMBlockBufferGetDataPointer(dataBuffer, atOffset: 0, lengthAtOffsetOut: &lengthAtOffsetOut, totalLengthOut: &totalLengthOut, dataPointerOut: &dataPointerOut)
-
+        
         guard status == kCMBlockBufferNoErr, let dataPointer = dataPointerOut else {
             print("Error retrieving data pointer from block buffer")
             return nil
@@ -310,29 +313,26 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         
         let data = Data(bytes: dataPointer, count: totalLengthOut)
         
-        return convertDataToStereoPCM(data: data)
+        return convertDataToMonoPCM(data: data)
     }
     
-    func convertDataToStereoPCM(data: Data) -> AVAudioPCMBuffer? {
-        // Assuming data is 16-bit samples and you want to convert it to stereo
-        guard let audioFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 44100, channels: 2, interleaved: false) else {
+    func convertDataToMonoPCM(data: Data) -> AVAudioPCMBuffer? {
+        // Assuming data is 16-bit samples and you want to keep it in mono
+        guard let audioFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: 1, interleaved: false) else {
             print("Failed to create audio format.")
             return nil
         }
-
+        
         // Allocate the PCM buffer
         let pcmBuffer = AVAudioPCMBuffer(pcmFormat: audioFormat, frameCapacity: AVAudioFrameCount(data.count / 2))!
         pcmBuffer.frameLength = pcmBuffer.frameCapacity
         
-        // Copy mono data into the stereo buffer, duplicating for both channels
-        let channels = UnsafeBufferPointer(start: pcmBuffer.int16ChannelData, count: 2) // Expecting 2 channels for stereo
-        
+        // Convert Int16 data to Float32 and copy to PCM buffer
+        let channel = pcmBuffer.floatChannelData![0]
         data.withUnsafeBytes { ptr in
             let dataBytes = ptr.bindMemory(to: Int16.self)
             for frameIndex in 0..<pcmBuffer.frameLength {
-                let sampleValue = dataBytes[Int(frameIndex)]
-                channels[0][Int(frameIndex)] = sampleValue
-                channels[1][Int(frameIndex)] = sampleValue // Duplicate the data for stereo
+                channel[Int(frameIndex)] = Float(dataBytes[Int(frameIndex)]) / Float(Int16.max)
             }
         }
         
@@ -343,17 +343,26 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 extension ViewController {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         
+        /* Stream Description
         if let format = CMSampleBufferGetFormatDescription(sampleBuffer), let streamDescription = CMAudioFormatDescriptionGetStreamBasicDescription(format) {
             print("Sample rate: \(streamDescription.pointee.mSampleRate)")
             print("Channels: \(streamDescription.pointee.mChannelsPerFrame)")
+            print("Bits per channel: \(streamDescription.pointee.mBitsPerChannel)")
+            print("Bytes per frame: \(streamDescription.pointee.mBytesPerFrame)")
+            
         } else {
             print("Error: Could not retrieve format or streamDescription.")
         }
-       
-        guard let pcmBuffer = convertSampleBufferToStereoPCMBuffer(sampleBuffer) else { return }
-        audioPlayerNode.scheduleBuffer(pcmBuffer, completionHandler: nil)
+         */
+        guard let pcmBuffer = convertSampleBufferToMonoPCMBuffer(sampleBuffer) else { return }
+                audioPlayerNode.scheduleBuffer(pcmBuffer, completionHandler: nil)
+
 
         if !audioEngine.isRunning {
+            // Print the expected formats here:
+            print("audioPlayerNode Output Format: \(audioPlayerNode.outputFormat(forBus: 0))")
+            print("mainMixerNode Input Format: \(audioEngine.mainMixerNode.inputFormat(forBus: 0))")
+            
             print("audioPlayerNode: \(String(describing: audioPlayerNode))") // Should not be nil
             print("mainMixerNode: \(audioEngine.mainMixerNode)") // Should not be nil
             do {
