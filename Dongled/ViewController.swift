@@ -14,7 +14,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     var audioPlayerNode: AVAudioPlayerNode!
     var audioOutput: AVCaptureAudioDataOutput!
     
-    
+    let monoFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: 1, interleaved: false)
     
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
@@ -242,19 +242,22 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasDisconnected, object: nil)
     }
     
-    // audio
+    // Audio Engine
     
     func setupAudioEngine() {
         audioEngine = AVAudioEngine()
         audioPlayerNode = AVAudioPlayerNode()
-
-        let monoFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: 1, interleaved: false)
-
         audioEngine.attach(audioPlayerNode)
         audioEngine.connect(audioPlayerNode, to: audioEngine.mainMixerNode, format: monoFormat)
         audioPlayerNode.volume = 1.0
+        
+        do {
+                try audioEngine.start()
+                audioPlayerNode.play()
+        } catch {
+            print("Error starting audio engine during setup: \(error)")
+        }
     }
-
     
     func configureAudio() {
         
@@ -295,82 +298,49 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     }
     
     func convertSampleBufferToMonoPCMBuffer(_ sampleBuffer: CMSampleBuffer) -> AVAudioPCMBuffer? {
-        guard let dataBuffer = CMSampleBufferGetDataBuffer(sampleBuffer) else {
-            print("Can't get data buffer from sample buffer")
-            return nil
-        }
-        
-        var lengthAtOffsetOut: size_t = 0
-        var totalLengthOut: size_t = 0
-        var dataPointerOut: UnsafeMutablePointer<Int8>?
-        
-        let status = CMBlockBufferGetDataPointer(dataBuffer, atOffset: 0, lengthAtOffsetOut: &lengthAtOffsetOut, totalLengthOut: &totalLengthOut, dataPointerOut: &dataPointerOut)
-        
-        guard status == kCMBlockBufferNoErr, let dataPointer = dataPointerOut else {
-            print("Error retrieving data pointer from block buffer")
-            return nil
-        }
-        
-        let data = Data(bytes: dataPointer, count: totalLengthOut)
-        
-        return convertDataToMonoPCM(data: data)
-    }
-    
-    func convertDataToMonoPCM(data: Data) -> AVAudioPCMBuffer? {
-        // Assuming data is 16-bit samples and you want to keep it in mono
-        guard let audioFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: 1, interleaved: false) else {
-            print("Failed to create audio format.")
-            return nil
-        }
-        
-        // Allocate the PCM buffer
-        let pcmBuffer = AVAudioPCMBuffer(pcmFormat: audioFormat, frameCapacity: AVAudioFrameCount(data.count / 2))!
-        pcmBuffer.frameLength = pcmBuffer.frameCapacity
-        
-        // Convert Int16 data to Float32 and copy to PCM buffer
-        let channel = pcmBuffer.floatChannelData![0]
-        data.withUnsafeBytes { ptr in
-            let dataBytes = ptr.bindMemory(to: Int16.self)
-            for frameIndex in 0..<pcmBuffer.frameLength {
-                channel[Int(frameIndex)] = Float(dataBytes[Int(frameIndex)]) / Float(Int16.max)
+            guard let dataBuffer = CMSampleBufferGetDataBuffer(sampleBuffer) else {
+                print("Can't get data buffer from sample buffer")
+                return nil
             }
+            
+            var lengthAtOffsetOut: size_t = 0
+            var totalLengthOut: size_t = 0
+            var dataPointerOut: UnsafeMutablePointer<Int8>?
+
+            let status = CMBlockBufferGetDataPointer(dataBuffer, atOffset: 0, lengthAtOffsetOut: &lengthAtOffsetOut, totalLengthOut: &totalLengthOut, dataPointerOut: &dataPointerOut)
+            
+            guard status == kCMBlockBufferNoErr, let dataPointer = dataPointerOut else {
+                print("Error retrieving data pointer from block buffer")
+                return nil
+            }
+
+            return convertDataPointerToMonoPCM(dataPointer: dataPointer, totalLength: totalLengthOut)
         }
-        
+    
+    func convertDataPointerToMonoPCM(dataPointer: UnsafeMutablePointer<Int8>, totalLength: Int) -> AVAudioPCMBuffer? {
+        let frameCapacity = AVAudioFrameCount(totalLength / 2)
+        guard let pcmBuffer = AVAudioPCMBuffer(pcmFormat: monoFormat!, frameCapacity: frameCapacity) else {
+            print("Failed to create audio buffer.")
+            return nil
+        }
+
+        pcmBuffer.frameLength = pcmBuffer.frameCapacity
+
+        let channel = pcmBuffer.floatChannelData![0]
+        let dataBytes = UnsafeMutableRawPointer(dataPointer).assumingMemoryBound(to: Int16.self) 
+
+        for frameIndex in 0..<pcmBuffer.frameLength {
+            channel[Int(frameIndex)] = Float(dataBytes[Int(frameIndex)]) / Float(Int16.max)
+        }
+
         return pcmBuffer
     }
 }
 
 extension ViewController {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        
-        /* Stream Description
-        if let format = CMSampleBufferGetFormatDescription(sampleBuffer), let streamDescription = CMAudioFormatDescriptionGetStreamBasicDescription(format) {
-            print("Sample rate: \(streamDescription.pointee.mSampleRate)")
-            print("Channels: \(streamDescription.pointee.mChannelsPerFrame)")
-            print("Bits per channel: \(streamDescription.pointee.mBitsPerChannel)")
-            print("Bytes per frame: \(streamDescription.pointee.mBytesPerFrame)")
-            
-        } else {
-            print("Error: Could not retrieve format or streamDescription.")
-        }
-         */
         guard let pcmBuffer = convertSampleBufferToMonoPCMBuffer(sampleBuffer) else { return }
-                audioPlayerNode.scheduleBuffer(pcmBuffer, completionHandler: nil)
-
-
-        if !audioEngine.isRunning {
-            // Print the expected formats here:
-            print("audioPlayerNode Output Format: \(audioPlayerNode.outputFormat(forBus: 0))")
-            print("mainMixerNode Input Format: \(audioEngine.mainMixerNode.inputFormat(forBus: 0))")
-            
-            print("audioPlayerNode: \(String(describing: audioPlayerNode))") // Should not be nil
-            print("mainMixerNode: \(audioEngine.mainMixerNode)") // Should not be nil
-            do {
-                try audioEngine.start()
-                audioPlayerNode.play()
-            } catch {
-                print("Error starting audio engine: \(error)")
-            }
-        }
+        audioPlayerNode.scheduleBuffer(pcmBuffer, completionHandler: nil)
     }
 }
+
