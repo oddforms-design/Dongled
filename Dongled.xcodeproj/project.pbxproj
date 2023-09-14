@@ -16,6 +16,9 @@
 		3B46D2E82AA8E82D00272E45 /* DongledTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B46D2E72AA8E82D00272E45 /* DongledTests.swift */; };
 		3B46D2F22AA8E82D00272E45 /* DongledUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B46D2F12AA8E82D00272E45 /* DongledUITests.swift */; };
 		3B46D2F42AA8E82D00272E45 /* DongledUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B46D2F32AA8E82D00272E45 /* DongledUITestsLaunchTests.swift */; };
+		3B98FADE2AB368460011CE82 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B98FADD2AB368460011CE82 /* AudioManager.swift */; };
+		3B98FADF2AB368460011CE82 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B98FADD2AB368460011CE82 /* AudioManager.swift */; };
+		3B98FAE02AB368460011CE82 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B98FADD2AB368460011CE82 /* AudioManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +52,7 @@
 		3B46D2ED2AA8E82D00272E45 /* DongledUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DongledUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B46D2F12AA8E82D00272E45 /* DongledUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DongledUITests.swift; sourceTree = "<group>"; };
 		3B46D2F32AA8E82D00272E45 /* DongledUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DongledUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		3B98FADD2AB368460011CE82 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,6 +106,7 @@
 				3B46D2D02AA8E82C00272E45 /* AppDelegate.swift */,
 				3B46D2D22AA8E82C00272E45 /* SceneDelegate.swift */,
 				3B46D2D42AA8E82C00272E45 /* ViewController.swift */,
+				3B98FADD2AB368460011CE82 /* AudioManager.swift */,
 				3B46D2D62AA8E82C00272E45 /* Main.storyboard */,
 				3B46D2D92AA8E82D00272E45 /* Assets.xcassets */,
 				3B46D2DB2AA8E82D00272E45 /* LaunchScreen.storyboard */,
@@ -260,6 +265,7 @@
 			files = (
 				3B46D2D52AA8E82C00272E45 /* ViewController.swift in Sources */,
 				3B46D2D12AA8E82C00272E45 /* AppDelegate.swift in Sources */,
+				3B98FADE2AB368460011CE82 /* AudioManager.swift in Sources */,
 				3B46D2D32AA8E82C00272E45 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -268,6 +274,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3B98FADF2AB368460011CE82 /* AudioManager.swift in Sources */,
 				3B46D2E82AA8E82D00272E45 /* DongledTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -276,6 +283,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3B98FAE02AB368460011CE82 /* AudioManager.swift in Sources */,
 				3B46D2F22AA8E82D00272E45 /* DongledUITests.swift in Sources */,
 				3B46D2F42AA8E82D00272E45 /* DongledUITestsLaunchTests.swift in Sources */,
 			);
