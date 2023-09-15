@@ -1,7 +1,7 @@
 import UIKit
 import AVFoundation
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDelegate {
     
     @IBOutlet weak var noDeviceLabel: UILabel!
     @IBOutlet weak var coverView: UIView!
@@ -9,8 +9,12 @@ class ViewController: UIViewController {
     var previewLayer: AVCaptureVideoPreviewLayer?
     var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
     var isDeviceConnectedAtStartup: Bool = false
-    var audioManager: AudioManager!
     
+    var audioEngine: AVAudioEngine!
+    var audioPlayerNode: AVAudioPlayerNode!
+    var audioOutput: AVCaptureAudioDataOutput!
+    
+    let pcmFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: 1, interleaved: false)
     
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
@@ -25,9 +29,12 @@ class ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceConnected), name: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceDisconnected), name: NSNotification.Name.AVCaptureDeviceWasDisconnected, object: nil)
         
-        setupCaptureSession()
-        audioManager.setupAudioEngine()
-        
+        setupAudioSession()
+        DispatchQueue.global(qos: .background).async {
+            self.setupCaptureSession()
+        }
+       
+        setupAudioEngine()
     }
     
     func setupCaptureSession() {
@@ -46,14 +53,10 @@ class ViewController: UIViewController {
         
         if let device = discoverySession.devices.first {
             isDeviceConnectedAtStartup = true
-            
             configureExternalDevice(device)
-            
-            audioManager = AudioManager(captureSession: captureSession!)
-            audioManager.setupAudioEngine()
-            audioManager.configureAudio()
-            
-            
+            startSesssion()
+            configureAudio()
+   
         } else {
             DispatchQueue.main.async {
                 UIApplication.shared.isIdleTimerDisabled = false
@@ -61,6 +64,16 @@ class ViewController: UIViewController {
                 self.noDeviceLabel.isHidden = false
                 self.coverView.isHidden = false
             }
+        }
+    }
+    
+    func startSesssion() {
+        guard let session = captureSession else {
+            print("Session is nil")
+            return
+        }
+        DispatchQueue.global(qos: .userInitiated).async {
+            session.startRunning()
         }
     }
     
@@ -92,9 +105,7 @@ class ViewController: UIViewController {
             }
             setupPreviewLayer(for: session)
             
-            DispatchQueue.global(qos: .userInitiated).async {
-                session.startRunning()
-            }
+            
         } catch {
             print("Error setting up capture session input: \(error)")
         }
@@ -128,6 +139,7 @@ class ViewController: UIViewController {
         if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
             
             if !isDeviceConnectedAtStartup {
+                
                 // This creates a clean startup
                 configureExternalDevice(device)
                 isDeviceConnectedAtStartup = true  // reset the flag
@@ -137,18 +149,52 @@ class ViewController: UIViewController {
                     for input in session.inputs {
                         if let deviceInput = input as? AVCaptureDeviceInput, deviceInput.device == device {
                             session.removeInput(deviceInput)
+                            print("Removed default device: \(device)")
                         }
                     }
                 }
+                startSesssion()
                 setupCaptureSession()
                 
+                // Stop the audio player node and engine
+                stopAudio()
+                
+                if !audioEngine.isRunning {
+                    do {
+                        try audioEngine.start()
+                        audioPlayerNode?.play()
+                    } catch {
+                        print("Error starting audio engine during reconnection: \(error)")
+                    }
+                }
+                configureAudio()
             } else {
+                
+                guard let session = captureSession else {
+                    print("Session is nil")
+                    return
+                }
+                session.beginConfiguration()
+                if let device = self.captureSession?.inputs.first as? AVCaptureDeviceInput {
+                    self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device.device, previewLayer: previewLayer)
+                    self.applyVideoRotationForPreview()
+                }
+                session.commitConfiguration()
+                startSesssion()
                 // For reconnection, switch to the device
                 configureExternalDevice(device)
                 
-                DispatchQueue.global(qos: .userInitiated).async {
-                    self.captureSession?.startRunning()  // Start the session again
+                if !audioEngine.isRunning {
+                    do {
+                        print("Restarting Audio Engine")
+                        try audioEngine.start()
+                        audioPlayerNode?.play()
+                    } catch {
+                        print("Error starting audio engine during reconnection: \(error)")
+                    }
                 }
+                configureAudio()
+           
                 print("Session Resuming From HotPlug")
             }
         }
@@ -168,6 +214,14 @@ class ViewController: UIViewController {
             }
         }
         
+        // Stop the audio player node and engine & disconnect input
+        stopAudio()
+        
+        if let session = captureSession
+        {
+            session.stopRunning()
+        }
+        
         print("Session disconnect")
         
         DispatchQueue.main.async {
@@ -177,6 +231,9 @@ class ViewController: UIViewController {
             self.coverView.isHidden = false
         }
     }
+    
+    // Helpers //
+    
     func configureCameraForHighestFrameRate(device: AVCaptureDevice) {
         
         var bestFormat: AVCaptureDevice.Format?
@@ -240,5 +297,158 @@ class ViewController: UIViewController {
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasDisconnected, object: nil)
     }
     
+    // Audio Engine
+   
+    func setupAudioEngine() {
+        
+        guard let safePCMFormat = pcmFormat else {
+               print("Error: PCM format is not available.")
+               return
+           }
+        
+        audioEngine = AVAudioEngine()
+        audioPlayerNode = AVAudioPlayerNode()
+        audioEngine.attach(audioPlayerNode)
+        audioEngine.connect(audioPlayerNode, to: audioEngine.mainMixerNode, format: safePCMFormat)
+        audioPlayerNode.volume = 1.0
+        
+        guard let audioEngine = audioEngine else {
+            print("Error: audioEngine is not initialized.")
+            return
+        }
 
+        do {
+            try audioEngine.start()
+            audioPlayerNode?.play()
+        } catch {
+            print("Error starting audio engine during setup: \(error)")
+        }
+        
+    }
+    
+    // Discover the device and set it as the session input
+    func configureAudio() {
+        guard let session = captureSession else {
+            print("Session is nil")
+            return
+        }
+
+        let audioDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external, .microphone], mediaType: .audio, position: .unspecified)
+        print("Found \(audioDiscoverySession.devices.count) audio devices.")
+                
+        for device in audioDiscoverySession.devices {
+            print("Audio device name: \(device.localizedName)")
+        }
+
+        if let audioDevice = audioDiscoverySession.devices.first(where: { $0.deviceType == .microphone }) {
+            print("Attempting to configure the external audio device.")
+            do {
+                let audioInput = try AVCaptureDeviceInput(device: audioDevice)
+                if session.canAddInput(audioInput) {
+                    session.addInput(audioInput)
+                    print("Added external audio input: \(audioDevice.localizedName)")
+                } else {
+                    print("Cannot add external audio input to the session.")
+                }
+            } catch {
+                print("Error setting up external audio capture session input: \(error)")
+            }
+        } else {
+            print("No external audio device found.")
+        }
+
+        audioOutput = AVCaptureAudioDataOutput()
+        audioOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "audioQueue"))
+        if session.canAddOutput(audioOutput) {
+            session.addOutput(audioOutput)
+        }
+    }
+    
+    // Stop the audio system
+    func stopAudio() {
+        audioPlayerNode.stop()
+        audioEngine.stop()
+
+        // Remove the audio input from the capture session
+        if let session = captureSession {
+            for input in session.inputs {
+                if let deviceInput = input as? AVCaptureDeviceInput, deviceInput.device.hasMediaType(.audio) {
+                    session.removeInput(deviceInput)
+                }
+            }
+        }
+    }
+    
+    // Trying to Enable Headphones in Audio Session
+    func setupAudioSession() {
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.allowBluetoothA2DP, .defaultToSpeaker] )
+            try audioSession.setActive(true)
+          
+        } catch {
+            print("Failed to set up audio session: \(error)")
+        }
+    }
+    
+    // Connect the Output to the Sample Buffer
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        // Convert the sample buffer directly to PCM buffer
+        guard let pcmBuffer = self.sampleBufferToPCMBuffer(sampleBuffer) else {
+            print("Error converting sample buffer to PCM buffer")
+            return
+        }
+        
+        // Schedule the buffer for playback and play
+        audioPlayerNode.scheduleBuffer(pcmBuffer) {
+        }
+    }
+
+    // The PCM Sample Buffer
+    func sampleBufferToPCMBuffer(_ sampleBuffer: CMSampleBuffer) -> AVAudioPCMBuffer? {
+        // Check buffer validity
+        if !CMSampleBufferIsValid(sampleBuffer) {
+            print("Invalid sample buffer")
+            return nil
+        }
+
+        // Create an AudioBufferList
+        var blockBuffer: CMBlockBuffer?
+        var audioBufferList = AudioBufferList(mNumberBuffers: 1, mBuffers: AudioBuffer(mNumberChannels: 1, mDataByteSize: 0, mData: nil))
+
+        let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(sampleBuffer, bufferListSizeNeededOut: nil, bufferListOut: &audioBufferList, bufferListSize: MemoryLayout<AudioBufferList>.size, blockBufferAllocator: nil, blockBufferMemoryAllocator: nil, flags: 0, blockBufferOut: &blockBuffer)
+
+        guard status == noErr else {
+            print("Error getting audio buffer list from sample buffer. OSStatus: \(status)")
+            return nil
+        }
+
+        // Create a PCM buffer from the audio buffer list
+        let frameCount = CMSampleBufferGetNumSamples(sampleBuffer)
+        guard let pcmBuffer = AVAudioPCMBuffer(pcmFormat: pcmFormat!, frameCapacity: AVAudioFrameCount(frameCount)) else {
+            print("Failed to create audio buffer.")
+            return nil
+        } 
+        /*
+        if let format = CMSampleBufferGetFormatDescription(sampleBuffer) {
+            let streamDescription = CMAudioFormatDescriptionGetStreamBasicDescription(format)?.pointee
+            print("Sample Buffer Format: \(streamDescription.debugDescription)")
+        }
+        */
+        pcmBuffer.frameLength = AVAudioFrameCount(frameCount)
+        guard let floatChannelData = pcmBuffer.floatChannelData else {
+            print("Error accessing PCM buffer's float channel data")
+            return nil
+        }
+
+        let channel = floatChannelData[0]
+        let int16DataBytes = audioBufferList.mBuffers.mData?.assumingMemoryBound(to: Int16.self)
+
+        for frameIndex in 0..<Int(frameCount) {
+            channel[frameIndex] = Float(int16DataBytes![frameIndex]) / Float(Int16.max)
+        }
+
+        return pcmBuffer
+    }
 }
+
