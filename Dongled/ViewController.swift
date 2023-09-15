@@ -14,7 +14,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     var audioPlayerNode: AVAudioPlayerNode!
     var audioOutput: AVCaptureAudioDataOutput!
     
-    let pcmFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: 1, interleaved: false)
+    let pcmFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: 2, interleaved: false)
     
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
@@ -414,7 +414,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 
         // Create an AudioBufferList
         var blockBuffer: CMBlockBuffer?
-        var audioBufferList = AudioBufferList(mNumberBuffers: 1, mBuffers: AudioBuffer(mNumberChannels: 1, mDataByteSize: 0, mData: nil))
+        var audioBufferList = AudioBufferList(mNumberBuffers: 2, mBuffers: AudioBuffer(mNumberChannels: 2, mDataByteSize: 0, mData: nil))
 
         let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(sampleBuffer, bufferListSizeNeededOut: nil, bufferListOut: &audioBufferList, bufferListSize: MemoryLayout<AudioBufferList>.size, blockBufferAllocator: nil, blockBufferMemoryAllocator: nil, flags: 0, blockBufferOut: &blockBuffer)
 
@@ -429,23 +429,25 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             print("Failed to create audio buffer.")
             return nil
         } 
-        /*
+        
         if let format = CMSampleBufferGetFormatDescription(sampleBuffer) {
             let streamDescription = CMAudioFormatDescriptionGetStreamBasicDescription(format)?.pointee
             print("Sample Buffer Format: \(streamDescription.debugDescription)")
         }
-        */
+        
         pcmBuffer.frameLength = AVAudioFrameCount(frameCount)
         guard let floatChannelData = pcmBuffer.floatChannelData else {
             print("Error accessing PCM buffer's float channel data")
             return nil
         }
 
-        let channel = floatChannelData[0]
+        let leftChannel = floatChannelData[0]
+        let rightChannel = floatChannelData[1]
         let int16DataBytes = audioBufferList.mBuffers.mData?.assumingMemoryBound(to: Int16.self)
 
         for frameIndex in 0..<Int(frameCount) {
-            channel[frameIndex] = Float(int16DataBytes![frameIndex]) / Float(Int16.max)
+            leftChannel[frameIndex] = Float(int16DataBytes![2 * frameIndex]) / Float(Int16.max)     // Left channel
+            rightChannel[frameIndex] = Float(int16DataBytes![2 * frameIndex + 1]) / Float(Int16.max) // Right channel
         }
 
         return pcmBuffer
