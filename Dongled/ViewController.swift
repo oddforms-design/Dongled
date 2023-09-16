@@ -14,7 +14,10 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     var audioPlayerNode: AVAudioPlayerNode!
     var audioOutput: AVCaptureAudioDataOutput!
     
-    let pcmFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: 2, interleaved: false)
+    var detectedChannels: UInt32 = 1
+    var pcmFormat: AVAudioFormat? {
+        return AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: detectedChannels, interleaved: false)
+    }
     
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
@@ -54,6 +57,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         if let device = discoverySession.devices.first {
             isDeviceConnectedAtStartup = true
             configureExternalDevice(device)
+            playerUI()
             startSesssion()
             configureAudio()
    
@@ -80,6 +84,9 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     func configureExternalDevice(_ device: AVCaptureDevice) {
         configureCameraForHighestFrameRate(device: device)
         setupDeviceInput(for: device)
+    }
+    
+    func playerUI() {
         isStatusBarHidden = true
         DispatchQueue.main.async {
             UIApplication.shared.isIdleTimerDisabled = true
@@ -140,7 +147,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             
             if !isDeviceConnectedAtStartup {
                 
-                // This creates a clean startup
+                // This creates a clean startup with correct frame rate
                 configureExternalDevice(device)
                 isDeviceConnectedAtStartup = true  // reset the flag
                 print("Session Launching From HotPlug")
@@ -154,20 +161,14 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
                     }
                 }
                 startSesssion()
-                setupCaptureSession()
-                
-                // Stop the audio player node and engine
+                configureExternalDevice(device)
+                // Restart audio player node and engine
                 stopAudio()
-                
-                if !audioEngine.isRunning {
-                    do {
-                        try audioEngine.start()
-                        audioPlayerNode?.play()
-                    } catch {
-                        print("Error starting audio engine during reconnection: \(error)")
-                    }
-                }
+                setupAudioEngine()
                 configureAudio()
+                playerUI()
+              
+                
             } else {
                 
                 guard let session = captureSession else {
@@ -183,7 +184,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
                 startSesssion()
                 // For reconnection, switch to the device
                 configureExternalDevice(device)
-                
+                playerUI()
                 if !audioEngine.isRunning {
                     do {
                         print("Restarting Audio Engine")
@@ -300,7 +301,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     // Audio Engine
    
     func setupAudioEngine() {
-        
+        getChannels()
         guard let safePCMFormat = pcmFormat else {
                print("Error: PCM format is not available.")
                return
@@ -311,6 +312,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         audioEngine.attach(audioPlayerNode)
         audioEngine.connect(audioPlayerNode, to: audioEngine.mainMixerNode, format: safePCMFormat)
         audioPlayerNode.volume = 1.0
+        
+        
         
         guard let audioEngine = audioEngine else {
             print("Error: audioEngine is not initialized.")
@@ -326,6 +329,18 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         
     }
     
+    func getChannels() {
+        let audioEngine = AVAudioEngine()
+        let inputNode = audioEngine.inputNode
+        
+        // Query the channel count
+        let channelCount = inputNode.inputFormat(forBus: 0).channelCount
+        print("Number of channels: \(channelCount)")
+        
+        // Set the detectedChannels variable
+        detectedChannels = channelCount
+    }
+    
     // Discover the device and set it as the session input
     func configureAudio() {
         guard let session = captureSession else {
@@ -334,7 +349,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         }
 
         let audioDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external, .microphone], mediaType: .audio, position: .unspecified)
-        print("Found \(audioDiscoverySession.devices.count) audio devices.")
+        print("Found \(audioDiscoverySession.devices.count) audio devices. ")
                 
         for device in audioDiscoverySession.devices {
             print("Audio device name: \(device.localizedName)")
@@ -403,7 +418,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         audioPlayerNode.scheduleBuffer(pcmBuffer) {
         }
     }
-
+    
     // The PCM Sample Buffer
     func sampleBufferToPCMBuffer(_ sampleBuffer: CMSampleBuffer) -> AVAudioPCMBuffer? {
         // Check buffer validity
@@ -411,45 +426,57 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             print("Invalid sample buffer")
             return nil
         }
-
+        
         // Create an AudioBufferList
         var blockBuffer: CMBlockBuffer?
-        var audioBufferList = AudioBufferList(mNumberBuffers: 2, mBuffers: AudioBuffer(mNumberChannels: 2, mDataByteSize: 0, mData: nil))
-
+        var audioBufferList = AudioBufferList(mNumberBuffers: UInt32(detectedChannels), mBuffers: AudioBuffer(mNumberChannels: detectedChannels, mDataByteSize: 0, mData: nil))
+        
         let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(sampleBuffer, bufferListSizeNeededOut: nil, bufferListOut: &audioBufferList, bufferListSize: MemoryLayout<AudioBufferList>.size, blockBufferAllocator: nil, blockBufferMemoryAllocator: nil, flags: 0, blockBufferOut: &blockBuffer)
-
+        
         guard status == noErr else {
             print("Error getting audio buffer list from sample buffer. OSStatus: \(status)")
             return nil
         }
-
+        
         // Create a PCM buffer from the audio buffer list
         let frameCount = CMSampleBufferGetNumSamples(sampleBuffer)
         guard let pcmBuffer = AVAudioPCMBuffer(pcmFormat: pcmFormat!, frameCapacity: AVAudioFrameCount(frameCount)) else {
             print("Failed to create audio buffer.")
             return nil
-        } 
-        
+        }
+        /*
         if let format = CMSampleBufferGetFormatDescription(sampleBuffer) {
             let streamDescription = CMAudioFormatDescriptionGetStreamBasicDescription(format)?.pointee
             print("Sample Buffer Format: \(streamDescription.debugDescription)")
         }
-        
+        */
         pcmBuffer.frameLength = AVAudioFrameCount(frameCount)
         guard let floatChannelData = pcmBuffer.floatChannelData else {
             print("Error accessing PCM buffer's float channel data")
             return nil
         }
-
-        let leftChannel = floatChannelData[0]
-        let rightChannel = floatChannelData[1]
+        
         let int16DataBytes = audioBufferList.mBuffers.mData?.assumingMemoryBound(to: Int16.self)
-
-        for frameIndex in 0..<Int(frameCount) {
-            leftChannel[frameIndex] = Float(int16DataBytes![2 * frameIndex]) / Float(Int16.max)     // Left channel
-            rightChannel[frameIndex] = Float(int16DataBytes![2 * frameIndex + 1]) / Float(Int16.max) // Right channel
+        
+        if detectedChannels == 2 {
+            let leftChannel = floatChannelData[0]
+            let rightChannel = floatChannelData[1]
+            
+            for frameIndex in 0..<Int(frameCount) {
+                leftChannel[frameIndex] = Float(int16DataBytes![2 * frameIndex]) / Float(Int16.max)     // Left channel
+                rightChannel[frameIndex] = Float(int16DataBytes![2 * frameIndex + 1]) / Float(Int16.max) // Right channel
+            }
+        } else if detectedChannels == 1 {
+            let monoChannel = floatChannelData[0]
+            
+            for frameIndex in 0..<Int(frameCount) {
+                monoChannel[frameIndex] = Float(int16DataBytes![frameIndex]) / Float(Int16.max)
+            }
+        } else {
+            print("Unsupported number of channels: \(detectedChannels)")
+            return nil
         }
-
+        
         return pcmBuffer
     }
 }
