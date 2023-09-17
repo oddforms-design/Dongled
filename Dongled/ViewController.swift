@@ -16,6 +16,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     
     var detectedChannels: UInt32 = 1
     var pcmFormat: AVAudioFormat? {
+        
         return AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: detectedChannels, interleaved: false)
     }
     
@@ -326,7 +327,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         } catch {
             print("Error starting audio engine during setup: \(error)")
         }
-        
     }
     
     func getChannels() {
@@ -394,7 +394,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         }
     }
     
-    // Trying to Enable Headphones in Audio Session
+    // Audio Session
     func setupAudioSession() {
         let audioSession = AVAudioSession.sharedInstance()
         do {
