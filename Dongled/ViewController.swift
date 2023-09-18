@@ -47,7 +47,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         
         if let device = discoverySession.devices.first {
             configureExternalDevice(device)
-            playerUI()
             startSesssion()
             // Start Audio
             if audioEngine?.isRunning == true {
@@ -56,6 +55,13 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             }
             setupAudioEngine()
             configureAudio()
+            
+            isStatusBarHidden = true
+            DispatchQueue.main.async {
+                UIApplication.shared.isIdleTimerDisabled = true
+                self.coverView.isHidden = true
+                self.noDeviceLabel.isHidden = true
+            }
    
         } else {
             DispatchQueue.main.async {
@@ -80,15 +86,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     func configureExternalDevice(_ device: AVCaptureDevice) {
         configureCameraForHighestFrameRate(device: device)
         setupDeviceInput(for: device)
-    }
-    
-    func playerUI() {
-        isStatusBarHidden = true
-        DispatchQueue.main.async {
-            UIApplication.shared.isIdleTimerDisabled = true
-            self.coverView.isHidden = true
-            self.noDeviceLabel.isHidden = true
-        }
     }
     
     func setupDeviceInput(for device: AVCaptureDevice) {
@@ -140,37 +137,28 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     @objc func handleDeviceConnected(notification: Notification) {
         if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
             
-            guard let session = captureSession else {
-                print("Session is nil")
-                return
+        
+            DispatchQueue.main.async {
+                self.noDeviceLabel.text = "Allowing device to boot..."
             }
-            // Remove the previous device input
-            if let session = captureSession {
-                for input in session.inputs {
-                    if let deviceInput = input as? AVCaptureDeviceInput, deviceInput.device == device {
-                        session.removeInput(deviceInput)
-                        print("Removed default device: \(device)")
-                    }
+            
+            // Delay the rest of the code by 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                
+                self.configureExternalDevice(device)
+                self.startSesssion()
+               
+                self.isStatusBarHidden = true
+                // check stopped audio
+                self.stopAudio()
+                self.setupAudioEngine()
+                self.configureAudio()
+                
+                DispatchQueue.main.async {
+                    UIApplication.shared.isIdleTimerDisabled = true
+                    self.coverView.isHidden = true
+                    self.noDeviceLabel.isHidden = true
                 }
-            }
-           
-            DispatchQueue.main.async {
-                self.noDeviceLabel.text = "Connecting..."
-            }
-            
-            setupPreviewLayer(for: session)
-            startSesssion()
-            configureExternalDevice(device)
-            isStatusBarHidden = true
-            // check stopped audio
-            stopAudio()
-            setupAudioEngine()
-            configureAudio()
-            
-            DispatchQueue.main.async {
-                UIApplication.shared.isIdleTimerDisabled = true
-                self.coverView.isHidden = true
-                self.noDeviceLabel.isHidden = true
             }
         }
     }
@@ -178,6 +166,10 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     @objc func handleDeviceDisconnected(notification: Notification) {
         guard let device = notification.object as? AVCaptureDevice, device.deviceType == .external else {
             return
+        }
+        
+        DispatchQueue.main.async {
+            self.noDeviceLabel.text = "Scanning for Hardware"
         }
         
         // Remove input associated with disconnected device
