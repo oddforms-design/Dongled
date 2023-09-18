@@ -8,7 +8,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     var captureSession: AVCaptureSession?
     var previewLayer: AVCaptureVideoPreviewLayer?
     var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
-    var isDeviceConnectedAtStartup: Bool = false
     
     var audioEngine: AVAudioEngine!
     var audioPlayerNode: AVAudioPlayerNode!
@@ -27,18 +26,16 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
-        coverView.isHidden = true  // Hide the video feed at first
+        coverView.isHidden = true  // Hide the cover view at first
         
         // Register for camera connect/disconnect notifications
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceConnected), name: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceDisconnected), name: NSNotification.Name.AVCaptureDeviceWasDisconnected, object: nil)
         
-        setupAudioSession()
         DispatchQueue.global(qos: .background).async {
             self.setupCaptureSession()
+            self.setupAudioSession()
         }
-       
-        setupAudioEngine()
     }
     
     func setupCaptureSession() {
@@ -46,20 +43,18 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             captureSession = AVCaptureSession()
         }
         
-        guard let session = captureSession else {
-            print("Error initializing capture session")
-            return
-        }
-        
-        session.sessionPreset = .high
-        
         let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
         
         if let device = discoverySession.devices.first {
-            isDeviceConnectedAtStartup = true
             configureExternalDevice(device)
             playerUI()
             startSesssion()
+            // Start Audio
+            if audioEngine?.isRunning == true {
+                stopAudio()
+                print("Syncing Audio")
+            }
+            setupAudioEngine()
             configureAudio()
    
         } else {
@@ -91,8 +86,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         isStatusBarHidden = true
         DispatchQueue.main.async {
             UIApplication.shared.isIdleTimerDisabled = true
-            self.noDeviceLabel.isHidden = true
             self.coverView.isHidden = true
+            self.noDeviceLabel.isHidden = true
         }
     }
     
@@ -128,7 +123,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             print("Error setting up preview layer")
             return
         }
-        
         DispatchQueue.main.async {
             previewLayer.frame = self.view.bounds
             previewLayer.videoGravity = .resizeAspect
@@ -140,64 +134,43 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device.device, previewLayer: previewLayer)
             self.applyVideoRotationForPreview()
         }
-        
+        session.sessionPreset = .high
     }
     
     @objc func handleDeviceConnected(notification: Notification) {
         if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
             
-            if !isDeviceConnectedAtStartup {
-                
-                // This creates a clean startup with correct frame rate
-                configureExternalDevice(device)
-                isDeviceConnectedAtStartup = true  // reset the flag
-                print("Session Launching From HotPlug")
-                // Clean device input from no device at launch
-                if let session = captureSession {
-                    for input in session.inputs {
-                        if let deviceInput = input as? AVCaptureDeviceInput, deviceInput.device == device {
-                            session.removeInput(deviceInput)
-                            print("Removed default device: \(device)")
-                        }
+            guard let session = captureSession else {
+                print("Session is nil")
+                return
+            }
+            // Remove the previous device input
+            if let session = captureSession {
+                for input in session.inputs {
+                    if let deviceInput = input as? AVCaptureDeviceInput, deviceInput.device == device {
+                        session.removeInput(deviceInput)
+                        print("Removed default device: \(device)")
                     }
                 }
-                startSesssion()
-                configureExternalDevice(device)
-                // Restart audio player node and engine
-                stopAudio()
-                setupAudioEngine()
-                configureAudio()
-                playerUI()
-              
-                
-            } else {
-                
-                guard let session = captureSession else {
-                    print("Session is nil")
-                    return
-                }
-                session.beginConfiguration()
-                if let device = self.captureSession?.inputs.first as? AVCaptureDeviceInput {
-                    self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device.device, previewLayer: previewLayer)
-                    self.applyVideoRotationForPreview()
-                }
-                session.commitConfiguration()
-                startSesssion()
-                // For reconnection, switch to the device
-                configureExternalDevice(device)
-                playerUI()
-                if !audioEngine.isRunning {
-                    do {
-                        print("Restarting Audio Engine")
-                        try audioEngine.start()
-                        audioPlayerNode?.play()
-                    } catch {
-                        print("Error starting audio engine during reconnection: \(error)")
-                    }
-                }
-                configureAudio()
+            }
            
-                print("Session Resuming From HotPlug")
+            DispatchQueue.main.async {
+                self.noDeviceLabel.text = "Connecting..."
+            }
+            
+            setupPreviewLayer(for: session)
+            startSesssion()
+            configureExternalDevice(device)
+            isStatusBarHidden = true
+            // check stopped audio
+            stopAudio()
+            setupAudioEngine()
+            configureAudio()
+            
+            DispatchQueue.main.async {
+                UIApplication.shared.isIdleTimerDisabled = true
+                self.coverView.isHidden = true
+                self.noDeviceLabel.isHidden = true
             }
         }
     }
@@ -231,10 +204,12 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             self.isStatusBarHidden = false
             self.noDeviceLabel.isHidden = false
             self.coverView.isHidden = false
+            
         }
     }
     
     // Helpers //
+    
     
     func configureCameraForHighestFrameRate(device: AVCaptureDevice) {
         
@@ -349,7 +324,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         }
 
         let audioDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external, .microphone], mediaType: .audio, position: .unspecified)
-        print("Found \(audioDiscoverySession.devices.count) audio devices. ")
                 
         for device in audioDiscoverySession.devices {
             print("Audio device name: \(device.localizedName)")
@@ -381,14 +355,24 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     
     // Stop the audio system
     func stopAudio() {
-        audioPlayerNode.stop()
-        audioEngine.stop()
-        
-        // Remove the audio input from the capture session
+        if audioEngine?.isRunning == true {
+            audioPlayerNode.stop()
+            audioEngine.stop()
+            print("Stopping Audio")
+        }
+       
         if let session = captureSession {
+            // Remove audio inputs
             for input in session.inputs {
                 if let deviceInput = input as? AVCaptureDeviceInput, deviceInput.device.hasMediaType(.audio) {
                     session.removeInput(deviceInput)
+                }
+            }
+            
+            // Remove audio outputs in case of switch to stereo
+            for output in session.outputs {
+                if output is AVCaptureAudioDataOutput {
+                    session.removeOutput(output)
                 }
             }
         }
