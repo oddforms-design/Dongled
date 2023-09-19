@@ -26,7 +26,11 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
-        coverView.isHidden = true  // Hide the cover view at first
+        DispatchQueue.main.async {
+            UIApplication.shared.isIdleTimerDisabled = false
+            self.coverView.isHidden = false
+            self.noDeviceLabel.isHidden = false
+        }
         
         // Register for camera connect/disconnect notifications
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceConnected), name: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil)
@@ -42,29 +46,29 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         if captureSession == nil {
             captureSession = AVCaptureSession()
         }
-        
         setMaxSupportedResolution(for: captureSession!)
-        
         let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
         
         if let device = discoverySession.devices.first {
-            configureExternalDevice(device)
-            startSesssion()
-            // Start Audio
-            if audioEngine?.isRunning == true {
-                stopAudio()
-                print("Syncing Audio")
-            }
-            setupAudioEngine()
-            configureAudio()
-            
-            isStatusBarHidden = true
             DispatchQueue.main.async {
-                UIApplication.shared.isIdleTimerDisabled = true
-                self.coverView.isHidden = true
-                self.noDeviceLabel.isHidden = true
+                self.noDeviceLabel.text = "Connecting to Device"
             }
-   
+            // Delay the rest of the code by 2 seconds to ensure device is booted
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                self.captureSession?.beginConfiguration()
+                self.configureExternalDevice(device)
+                self.setupAudioEngine()
+                self.configureAudio()
+                self.captureSession?.commitConfiguration()
+                self.startSesssion()
+                
+                self.isStatusBarHidden = true
+                DispatchQueue.main.async {
+                    UIApplication.shared.isIdleTimerDisabled = true
+                    self.coverView.isHidden = true
+                    self.noDeviceLabel.isHidden = true
+                }
+            }
         } else {
             DispatchQueue.main.async {
                 UIApplication.shared.isIdleTimerDisabled = false
@@ -72,16 +76,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
                 self.noDeviceLabel.isHidden = false
                 self.coverView.isHidden = false
             }
-        }
-    }
-    
-    func startSesssion() {
-        guard let session = captureSession else {
-            print("Session is nil")
-            return
-        }
-        DispatchQueue.global(qos: .userInitiated).async {
-            session.startRunning()
         }
     }
     
@@ -135,28 +129,36 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         }
     }
     
+    func startSesssion() {
+        guard let session = captureSession else {
+            print("Session is nil")
+            return
+        }
+        DispatchQueue.global(qos: .userInitiated).async {
+            session.startRunning()
+        }
+    }
+    
     @objc func handleDeviceConnected(notification: Notification) {
         if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
             
         
             DispatchQueue.main.async {
-                self.noDeviceLabel.text = "Allowing device to boot..."
+                self.noDeviceLabel.text = "Connecting to Device"
             }
             
-            // Delay the rest of the code by 2 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                
+            // Delay the rest of the code by 2.2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+                self.captureSession?.beginConfiguration()
                 self.configureExternalDevice(device)
-                self.startSesssion()
-               
-                self.isStatusBarHidden = true
-                // check stopped audio
-                self.stopAudio()
                 self.setupAudioEngine()
                 self.configureAudio()
+                self.captureSession?.commitConfiguration()
+                self.startSesssion()
                 
                 DispatchQueue.main.async {
                     UIApplication.shared.isIdleTimerDisabled = true
+                    self.isStatusBarHidden = true
                     self.coverView.isHidden = true
                     self.noDeviceLabel.isHidden = true
                 }
@@ -173,6 +175,11 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             self.noDeviceLabel.text = "Scanning for Hardware"
         }
         
+        if let session = captureSession
+        {
+            session.stopRunning()
+        }
+        
         // Remove input associated with disconnected device
         if let session = captureSession {
             for input in session.inputs {
@@ -182,13 +189,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             }
         }
         
-        // Stop the audio player node and engine & disconnect input
+        // Stop the audio player node and engine & disconnect audio input
         stopAudio()
-        
-        if let session = captureSession
-        {
-            session.stopRunning()
-        }
         
         print("Session disconnect")
         
@@ -286,24 +288,26 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     // Audio Engine
    
     func setupAudioEngine() {
-        getChannels()
-        guard let safePCMFormat = pcmFormat else {
-               print("Error: PCM format is not available.")
-               return
-           }
-        
         audioEngine = AVAudioEngine()
+        guard let audioEngine = audioEngine else {
+            print("Error: Failed to initialize audioEngine.")
+            return
+        }
+
+        // Get the channel count
+        let channelCount = audioEngine.inputNode.inputFormat(forBus: 0).channelCount
+        print("Number of channels: \(channelCount)")
+        detectedChannels = channelCount
+        
+        guard let safePCMFormat = pcmFormat else {
+            print("Error: PCM format is not available.")
+            return
+        }
+
         audioPlayerNode = AVAudioPlayerNode()
         audioEngine.attach(audioPlayerNode)
         audioEngine.connect(audioPlayerNode, to: audioEngine.mainMixerNode, format: safePCMFormat)
         audioPlayerNode.volume = 1.0
-        
-        
-        
-        guard let audioEngine = audioEngine else {
-            print("Error: audioEngine is not initialized.")
-            return
-        }
 
         do {
             try audioEngine.start()
@@ -311,18 +315,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         } catch {
             print("Error starting audio engine during setup: \(error)")
         }
-    }
-    
-    func getChannels() {
-        let audioEngine = AVAudioEngine()
-        let inputNode = audioEngine.inputNode
-        
-        // Query the channel count
-        let channelCount = inputNode.inputFormat(forBus: 0).channelCount
-        print("Number of channels: \(channelCount)")
-        
-        // Set the detectedChannels variable
-        detectedChannels = channelCount
     }
     
     // Discover the device and set it as the session input
