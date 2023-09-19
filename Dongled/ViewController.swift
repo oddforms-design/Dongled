@@ -43,6 +43,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             captureSession = AVCaptureSession()
         }
         
+        setMaxSupportedResolution(for: captureSession!)
+        
         let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
         
         if let device = discoverySession.devices.first {
@@ -131,7 +133,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device.device, previewLayer: previewLayer)
             self.applyVideoRotationForPreview()
         }
-        session.sessionPreset = .high
     }
     
     @objc func handleDeviceConnected(notification: Notification) {
@@ -201,7 +202,23 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     }
     
     // Helpers //
-    
+    func setMaxSupportedResolution(for session: AVCaptureSession) {
+        let presetsInDecreasingOrder: [AVCaptureSession.Preset] = [
+            .hd1920x1080,
+            .hd1280x720,
+            .high,
+            .medium,
+            .low
+            // Add any other relevant presets here if needed.
+        ]
+
+        for preset in presetsInDecreasingOrder {
+            if session.canSetSessionPreset(preset) {
+                session.sessionPreset = preset
+                break
+            }
+        }
+    }
     
     func configureCameraForHighestFrameRate(device: AVCaptureDevice) {
         
