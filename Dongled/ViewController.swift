@@ -36,17 +36,14 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceConnected), name: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceDisconnected), name: NSNotification.Name.AVCaptureDeviceWasDisconnected, object: nil)
         
-        DispatchQueue.global(qos: .background).async {
-            self.setupCaptureSession()
-            self.setupAudioSession()
-        }
+            setupCaptureSession()
+            setupAudioSession()
     }
     
     func setupCaptureSession() {
         if captureSession == nil {
             captureSession = AVCaptureSession()
         }
-        setMaxSupportedResolution(for: captureSession!)
         let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
         
         if let device = discoverySession.devices.first {
@@ -80,8 +77,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     }
     
     func configureExternalDevice(_ device: AVCaptureDevice) {
-        configureCameraForHighestFrameRate(device: device)
         setupDeviceInput(for: device)
+      //  configureCameraForHighestFrameRate(device: device)
     }
     
     func setupDeviceInput(for device: AVCaptureDevice) {
@@ -99,6 +96,9 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             DispatchQueue.main.async {
                 self.noDeviceLabel.isHidden = true
             }
+            setMaxSupportedResolution(for: captureSession!)
+            let preset = captureSession!.sessionPreset
+               print("Capture Session is running at resolution: \(resolutionString(for: preset))")
             setupPreviewLayer(for: session)
             
             
@@ -116,6 +116,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             print("Error setting up preview layer")
             return
         }
+        
         DispatchQueue.main.async {
             previewLayer.frame = self.view.bounds
             previewLayer.videoGravity = .resizeAspect
@@ -127,6 +128,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device.device, previewLayer: previewLayer)
             self.applyVideoRotationForPreview()
         }
+        
     }
     
     func startSesssion() {
@@ -206,12 +208,9 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     // Helpers //
     func setMaxSupportedResolution(for session: AVCaptureSession) {
         let presetsInDecreasingOrder: [AVCaptureSession.Preset] = [
+            //.hd4K3840x2160,
             .hd1920x1080,
-            .hd1280x720,
-            .high,
-            .medium,
-            .low
-            // Add any other relevant presets here if needed.
+            .inputPriority
         ]
 
         for preset in presetsInDecreasingOrder {
@@ -222,41 +221,17 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         }
     }
     
-    func configureCameraForHighestFrameRate(device: AVCaptureDevice) {
-        
-        var bestFormat: AVCaptureDevice.Format?
-        var bestFrameRateRange: AVFrameRateRange?
-        
-        
-        for format in device.formats {
-            for range in format.videoSupportedFrameRateRanges {
-                if range.maxFrameRate > bestFrameRateRange?.maxFrameRate ?? 0 {
-                    bestFormat = format
-                    bestFrameRateRange = range
-                }
-            }
-        }
-        
-        if let bestFormat = bestFormat,
-           let bestFrameRateRange = bestFrameRateRange {
-            do {
-                try device.lockForConfiguration()
-                
-                // Set the device's active format.
-                device.activeFormat = bestFormat
-                
-                // Set the device's min/max frame duration.
-                let duration = bestFrameRateRange.minFrameDuration
-                device.activeVideoMinFrameDuration = duration
-                device.activeVideoMaxFrameDuration = duration
-                
-                device.unlockForConfiguration()
-            } catch {
-                // Handle error.
-            }
+    func resolutionString(for preset: AVCaptureSession.Preset) -> String {
+        switch preset {
+        case .hd1920x1080:
+            return "1920x1080"
+        case .inputPriority:
+            return "Input Priority"
+        default:
+            return "Unknown"
         }
     }
-    
+
     func applyVideoRotationForPreview() {
         guard let previewLayerConnection = previewLayer?.connection, let rotationCoordinator = rotationCoordinator else {
             return
@@ -285,8 +260,19 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasDisconnected, object: nil)
     }
     
+    // Audio Session
+    func setupAudioSession() {
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.allowBluetoothA2DP, .defaultToSpeaker] )
+            try audioSession.setActive(true)
+          
+        } catch {
+            print("Failed to set up audio session: \(error)")
+        }
+    }
+    
     // Audio Engine
-   
     func setupAudioEngine() {
         audioEngine = AVAudioEngine()
         guard let audioEngine = audioEngine else {
@@ -311,7 +297,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 
         do {
             try audioEngine.start()
-            audioPlayerNode?.play()
         } catch {
             print("Error starting audio engine during setup: \(error)")
         }
@@ -352,6 +337,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         if session.canAddOutput(audioOutput) {
             session.addOutput(audioOutput)
         }
+        audioPlayerNode?.play()
     }
     
     // Stop the audio system
@@ -376,18 +362,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
                     session.removeOutput(output)
                 }
             }
-        }
-    }
-    
-    // Audio Session
-    func setupAudioSession() {
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.allowBluetoothA2DP, .defaultToSpeaker] )
-            try audioSession.setActive(true)
-          
-        } catch {
-            print("Failed to set up audio session: \(error)")
         }
     }
     
