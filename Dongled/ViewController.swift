@@ -5,6 +5,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     
     @IBOutlet weak var noDeviceLabel: UILabel!
     @IBOutlet weak var coverView: UIView!
+    var isInitialLaunch = true
     var captureSession: AVCaptureSession?
     var previewLayer: AVCaptureVideoPreviewLayer?
     var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
@@ -35,7 +36,9 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         // Register for camera connect/disconnect notifications
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceConnected), name: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceDisconnected), name: NSNotification.Name.AVCaptureDeviceWasDisconnected, object: nil)
-        
+        NotificationCenter.default.addObserver(self, selector: #selector(appWillResignActive), name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
+
             setupCaptureSession()
             setupAudioSession()
     }
@@ -56,6 +59,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
                 self.configureExternalDevice(device)
                 self.setupAudioEngine()
                 self.configureAudio()
+                self.startAudio()
                 self.captureSession?.commitConfiguration()
                 self.startSesssion()
                 
@@ -78,7 +82,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     
     func configureExternalDevice(_ device: AVCaptureDevice) {
         setupDeviceInput(for: device)
-      //  configureCameraForHighestFrameRate(device: device)
     }
     
     func setupDeviceInput(for device: AVCaptureDevice) {
@@ -155,6 +158,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
                 self.configureExternalDevice(device)
                 self.setupAudioEngine()
                 self.configureAudio()
+                self.startAudio()
                 self.captureSession?.commitConfiguration()
                 self.startSesssion()
                 
@@ -203,6 +207,25 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             self.coverView.isHidden = false
             
         }
+    }
+    
+    @objc func appWillResignActive(_ notification: Notification) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.pauseAudio()
+            self.captureSession?.stopRunning()
+            print("Session Resigned Active")
+        }
+    }
+    @objc func appDidBecomeActive(_ notification: Notification) {
+        if isInitialLaunch {
+                isInitialLaunch = false
+                return  // Exit early for initial launch
+            }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.startAudio()
+            self.startSesssion()
+            print("Session Resumed Active")
+          }
     }
     
     // Helpers //
@@ -258,6 +281,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     deinit {
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasDisconnected, object: nil)
+        NotificationCenter.default.removeObserver(self)
+        isInitialLaunch = true
     }
     
     // Audio Session
@@ -294,12 +319,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         audioEngine.attach(audioPlayerNode)
         audioEngine.connect(audioPlayerNode, to: audioEngine.mainMixerNode, format: safePCMFormat)
         audioPlayerNode.volume = 1.0
-
-        do {
-            try audioEngine.start()
-        } catch {
-            print("Error starting audio engine during setup: \(error)")
-        }
     }
     
     // Discover the device and set it as the session input
@@ -309,7 +328,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             return
         }
 
-        let audioDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external, .microphone], mediaType: .audio, position: .unspecified)
+        let audioDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.microphone], mediaType: .audio, position: .unspecified)
                 
         for device in audioDiscoverySession.devices {
             print("Audio device name: \(device.localizedName)")
@@ -337,7 +356,26 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         if session.canAddOutput(audioOutput) {
             session.addOutput(audioOutput)
         }
-        audioPlayerNode?.play()
+    }
+    
+    func startAudio() {
+        if !(audioEngine?.isRunning ?? false) {
+            do {
+                try audioEngine?.start()
+            } catch {
+                print("Error starting audio engine during setup: \(error)")
+                return  // Early return because if the engine didn't start, we shouldn't attempt to play the node.
+            }
+        }
+        
+        if !(audioPlayerNode?.isPlaying ?? false) {
+            audioPlayerNode?.play()
+        }
+    }
+    
+    func pauseAudio() {
+        //audioEngine.stop()
+        audioPlayerNode?.pause()
     }
     
     // Stop the audio system
