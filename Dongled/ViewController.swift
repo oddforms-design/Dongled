@@ -416,12 +416,12 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     // Stop the audio system
     func stopAudio() {
         if audioEngine?.isRunning == true {
-            audioPlayerNode.stop()
             audioEngine.stop()
-            audioEngine?.reset()
-            print("Stopping Audio")
         }
-       
+        audioPlayerNode.stop()
+        audioEngine?.reset()
+        print("Stopping Audio")
+        
         if let session = captureSession {
             // Remove audio inputs
             for input in session.inputs {
