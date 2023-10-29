@@ -13,6 +13,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     var audioEngine: AVAudioEngine!
     var audioPlayerNode: AVAudioPlayerNode!
     var audioOutput: AVCaptureAudioDataOutput!
+    private var tapArmed: Bool = false
     
     var detectedChannels: UInt32 = 1
     var pcmFormat: AVAudioFormat? {
@@ -38,11 +39,11 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceDisconnected), name: NSNotification.Name.AVCaptureDeviceWasDisconnected, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(appWillResignActive), name: UIApplication.willResignActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
-
-            setupCaptureSession()
+      
             setupAudioSession()
+            setupCaptureSession()
     }
-    
+
     func setupCaptureSession() {
         if captureSession == nil {
             captureSession = AVCaptureSession()
@@ -55,6 +56,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             }
             // Delay the rest of the code by 2 seconds to ensure device is booted
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+               
                 self.captureSession?.beginConfiguration()
                 self.configureExternalDevice(device)
                 self.setupAudioEngine()
@@ -62,7 +64,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
                 self.startAudio()
                 self.captureSession?.commitConfiguration()
                 self.startSesssion()
-                
+            
                 self.isStatusBarHidden = true
                 DispatchQueue.main.async {
                     UIApplication.shared.isIdleTimerDisabled = true
@@ -147,7 +149,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     @objc func handleDeviceConnected(notification: Notification) {
         if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
             
-        
+            sessionStop()
             DispatchQueue.main.async {
                 self.noDeviceLabel.text = "Connecting to Device"
             }
@@ -181,10 +183,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             self.noDeviceLabel.text = "Scanning for Hardware"
         }
         
-        if let session = captureSession
-        {
-            session.stopRunning()
-        }
+        sessionStop()
         
         // Remove input associated with disconnected device
         if let session = captureSession {
@@ -212,7 +211,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     @objc func appWillResignActive(_ notification: Notification) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.pauseAudio()
-            self.captureSession?.stopRunning()
+            self.sessionStop()
             print("Session Resigned Active")
         }
     }
@@ -229,6 +228,12 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     }
     
     // Helpers //
+    func sessionStop() {
+        if let session = captureSession
+        {
+            session.stopRunning()
+        }
+    }
     func setMaxSupportedResolution(for session: AVCaptureSession) {
         let presetsInDecreasingOrder: [AVCaptureSession.Preset] = [
             //.hd4K3840x2160,
@@ -289,14 +294,13 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     func setupAudioSession() {
         let audioSession = AVAudioSession.sharedInstance()
         do {
-            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.allowBluetoothA2DP, .defaultToSpeaker] )
+            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.allowBluetoothA2DP, .mixWithOthers] )
             try audioSession.setActive(true)
           
         } catch {
             print("Failed to set up audio session: \(error)")
         }
     }
-    
     // Audio Engine
     func setupAudioEngine() {
         audioEngine = AVAudioEngine()
@@ -355,6 +359,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         audioOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "audioQueue"))
         if session.canAddOutput(audioOutput) {
             session.addOutput(audioOutput)
+            print("Adding Audio Output")
         }
     }
     
@@ -362,6 +367,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         if !(audioEngine?.isRunning ?? false) {
             do {
                 try audioEngine?.start()
+                print("Starting Audio Engine")
             } catch {
                 print("Error starting audio engine during setup: \(error)")
                 return  // Early return because if the engine didn't start, we shouldn't attempt to play the node.
@@ -371,10 +377,39 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         if !(audioPlayerNode?.isPlaying ?? false) {
             audioPlayerNode?.play()
         }
+        
+        bufferTap()
+        
+    }
+   
+    func bufferTap() {
+        if tapArmed {
+            print("Tap is already armed.")
+            return
+        }
+
+        tapArmed = true
+        print("Arming Tap")
+
+        audioPlayerNode?.installTap(onBus: 0, bufferSize: 64, format: nil) { (buffer, time) in
+            if buffer.frameLength > 0 {
+                self.setupAudioSession()
+                self.audioPlayerNode?.removeTap(onBus: 0)
+                self.tapArmed = false
+                print("Tap Disarmed")
+            }
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            if self.tapArmed { // Check if tap is still installed
+                self.audioPlayerNode?.removeTap(onBus: 0)
+                self.tapArmed = false
+                print("Tap Disarmed due to timeout")
+            }
+        }
     }
     
     func pauseAudio() {
-        //audioEngine.stop()
         audioPlayerNode?.pause()
     }
     
@@ -383,6 +418,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         if audioEngine?.isRunning == true {
             audioPlayerNode.stop()
             audioEngine.stop()
+            audioEngine?.reset()
             print("Stopping Audio")
         }
        
@@ -441,12 +477,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             print("Failed to create audio buffer.")
             return nil
         }
-        /*
-        if let format = CMSampleBufferGetFormatDescription(sampleBuffer) {
-            let streamDescription = CMAudioFormatDescriptionGetStreamBasicDescription(format)?.pointee
-            print("Sample Buffer Format: \(streamDescription.debugDescription)")
-        }
-        */
         pcmBuffer.frameLength = AVAudioFrameCount(frameCount)
         guard let floatChannelData = pcmBuffer.floatChannelData else {
             print("Error accessing PCM buffer's float channel data")
@@ -476,5 +506,5 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         
         return pcmBuffer
     }
-}
 
+}
