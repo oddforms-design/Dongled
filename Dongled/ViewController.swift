@@ -57,13 +57,9 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             // Delay the rest of the code by 2 seconds to ensure device is booted
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                
-                self.captureSession?.beginConfiguration()
-                self.configureExternalDevice(device)
-                self.setupAudioEngine()
-                self.configureAudio()
-                self.startAudio()
-                self.captureSession?.commitConfiguration()
-                self.startSesssion()
+               
+                self.launchSession(with: device)
+                        
             
                 self.isStatusBarHidden = true
                 DispatchQueue.main.async {
@@ -82,8 +78,16 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         }
     }
     
-    func configureExternalDevice(_ device: AVCaptureDevice) {
-        setupDeviceInput(for: device)
+    // Main Setup Functions
+    
+    func launchSession(with device: AVCaptureDevice) {
+        self.captureSession?.beginConfiguration()
+        self.setupDeviceInput(for: device)
+        self.setupAudioEngine()
+        self.configureAudio()
+        self.startAudio()
+        self.captureSession?.commitConfiguration()
+        self.startSession()
     }
     
     func setupDeviceInput(for device: AVCaptureDevice) {
@@ -136,7 +140,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         
     }
     
-    func startSesssion() {
+    func startSession() {
         guard let session = captureSession else {
             print("Session is nil")
             return
@@ -145,6 +149,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             session.startRunning()
         }
     }
+    
+    // Connects and Active
     
     @objc func handleDeviceConnected(notification: Notification) {
         if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
@@ -156,13 +162,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             
             // Delay the rest of the code by 2.2 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-                self.captureSession?.beginConfiguration()
-                self.configureExternalDevice(device)
-                self.setupAudioEngine()
-                self.configureAudio()
-                self.startAudio()
-                self.captureSession?.commitConfiguration()
-                self.startSesssion()
+               
+                self.launchSession(with: device)
                 
                 DispatchQueue.main.async {
                     UIApplication.shared.isIdleTimerDisabled = true
@@ -215,25 +216,30 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             print("Session Resigned Active")
         }
     }
+    
+    //
     @objc func appDidBecomeActive(_ notification: Notification) {
         if isInitialLaunch {
                 isInitialLaunch = false
-                return  // Exit early for initial launch
+                return  // Exit early if initial launch
             }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.startAudio()
-            self.startSesssion()
+            self.startSession()
             print("Session Resumed Active")
           }
     }
     
     // Helpers //
+    
     func sessionStop() {
         if let session = captureSession
         {
             session.stopRunning()
         }
     }
+    
+    // Video Setup
     func setMaxSupportedResolution(for session: AVCaptureSession) {
         let presetsInDecreasingOrder: [AVCaptureSession.Preset] = [
             //.hd4K3840x2160,
@@ -270,7 +276,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             previewLayerConnection.videoRotationAngle = rotationAngle
         }
     }
-    
+    // UI Helpers
     var isStatusBarHidden = false {
         didSet {
             DispatchQueue.main.async {
@@ -282,7 +288,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     override var prefersStatusBarHidden: Bool {
         return isStatusBarHidden
     }
-    
+    // Util
     deinit {
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasDisconnected, object: nil)
@@ -381,7 +387,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
         bufferTap()
         
     }
-   
+   // Audio Helpers
     func bufferTap() {
         if tapArmed {
             print("Tap is already armed.")
@@ -399,7 +405,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
                 print("Tap Disarmed")
             }
         }
-        
+        // Tap Removal failsafe if unplugged outside app
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
             if self.tapArmed { // Check if tap is still installed
                 self.audioPlayerNode?.removeTap(onBus: 0)
