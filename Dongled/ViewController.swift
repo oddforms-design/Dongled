@@ -15,6 +15,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     var audioOutput: AVCaptureAudioDataOutput!
     private var tapArmed: Bool = false
     
+    var sessionBlocked: Bool = false
+    
     var detectedChannels: UInt32 = 1
     var pcmFormat: AVAudioFormat? {
         
@@ -154,24 +156,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     
     @objc func handleDeviceConnected(notification: Notification) {
         if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
-            
-            sessionStop()
-            DispatchQueue.main.async {
-                self.noDeviceLabel.text = "Connecting to Device"
-            }
-            
-            // Delay the rest of the code by 2.2 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-               
-                self.launchSession(with: device)
-                
-                DispatchQueue.main.async {
-                    UIApplication.shared.isIdleTimerDisabled = true
-                    self.isStatusBarHidden = true
-                    self.coverView.isHidden = true
-                    self.noDeviceLabel.isHidden = true
-                }
-            }
+            rebootSession()
         }
     }
     
@@ -220,18 +205,52 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     //
     @objc func appDidBecomeActive(_ notification: Notification) {
         if isInitialLaunch {
-                isInitialLaunch = false
-                return  // Exit early if initial launch
+            isInitialLaunch = false
+            return  // Exit early if initial launch
+        }
+
+        if sessionBlocked {
+            print("App became active. Attempting to discover and reconnect session.")
+            rebootSession()
+            sessionBlocked = false
+        } else {
+            // Session was not blocked, resuming
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.startAudio()
+                self.startSession()
+                print("Session Resumed Active")
             }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.startAudio()
-            self.startSession()
-            print("Session Resumed Active")
-          }
+        }
     }
     
     // Helpers //
-    
+    func rebootSession(){
+        sessionStop()
+        
+        DispatchQueue.main.async {
+            self.noDeviceLabel.text = "Connecting to Device"
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+            if UIApplication.shared.applicationState == .active {
+                let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
+                    
+                if let device = discoverySession.devices.first {
+                    self.launchSession(with: device)
+
+                    DispatchQueue.main.async {
+                        UIApplication.shared.isIdleTimerDisabled = true
+                        self.isStatusBarHidden = true
+                        self.coverView.isHidden = true
+                        self.noDeviceLabel.isHidden = true
+                        }
+                    }
+                } else {
+                    self.sessionBlocked = true
+                    print("App is not active. Preventing session start.")
+                }
+            }
+    }
     func sessionStop() {
         if let session = captureSession
         {
@@ -370,13 +389,19 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     }
     
     func startAudio() {
+        
+        if detectedChannels == 0 {
+                print("No audio channels detected. Aborting audio start.")
+                return
+            }
+        
         if !(audioEngine?.isRunning ?? false) {
             do {
                 try audioEngine?.start()
                 print("Starting Audio Engine")
             } catch {
                 print("Error starting audio engine during setup: \(error)")
-                return  // Early return because if the engine didn't start, we shouldn't attempt to play the node.
+                return
             }
         }
         
