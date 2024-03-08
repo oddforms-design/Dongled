@@ -261,7 +261,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     // Video Setup
     func setMaxSupportedResolution(for session: AVCaptureSession) {
         let presetsInDecreasingOrder: [AVCaptureSession.Preset] = [
-            //.hd4K3840x2160,
+            .hd4K3840x2160,
             .hd1920x1080,
             .inputPriority
         ]
@@ -276,6 +276,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     
     func resolutionString(for preset: AVCaptureSession.Preset) -> String {
         switch preset {
+        case .hd4K3840x2160:
+            return "3840x2160"
         case .hd1920x1080:
             return "1920x1080"
         case .inputPriority:
