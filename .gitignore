@@ -1,0 +1,13 @@
+# Xcode
+.DS_Store
+xcuserdata
+*.xccheckout
+*.xcodeproj/project.xcworkspace/
+DerivedData
+*.userstate
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build
