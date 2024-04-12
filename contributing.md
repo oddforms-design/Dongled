@@ -7,6 +7,12 @@ Hello! I'm Charles (oddforms) and I would like to make contributing to this proj
 - Proposing new features
 - Becoming a maintainer
 
+## Report bugs using Github's [issues](https://github.com/oddforms-design/Dongled/issues)
+I am using GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/oddforms-design/Dongled/issues).
+
+## Join the discussion on Github's... discussions!
+Want to talk about an issue or feature or something else? Head to the [discussions](https://github.com/oddforms-design/Dongled/discussions) page.
+
 ## My Goals for Open Sourcing this Project as of April 2024
 - Code review & Improve the App: I am a self-taught coder, I would imagine there will be some things that should be adjusted to be 'best-practice' in terms of code layout that will be easy adjustments.
 - Learning how to maintain a github project
@@ -23,14 +29,11 @@ I use github to host code, to track issues and feature requests, as well as acce
 2. Make a detailed and clear commit message that explains what you did and why.
 3. If you've added incomplete code or code that needs furthing testing, make sure thats clear!
 4. Comment your code, particularly in hard-to-understand areas
-5. If you would like, further explain or paste your commit in the discussion area.
+5. If you would like, further explain or paste your commit in the discussion area prior to pulling.
 6. Issue that pull request!
 
-## Report bugs using Github's [issues](https://github.com/oddforms-design/Dongled/issues)
-I am using GitHub issues to track public bugs. Report a bug by [opening a new issue]().
-
 ## No Guarantee of Life
-Dongled is a free, non-revenue generating app which costs actual money to keep running via App Store fees and the web domain, not to mention my time. Please be aware I reserve the right to stop distributing it on the AppStore and close down the project at any time. It's also possible that I will allow donations on the project in the future to cover these fees. I do not currently have the ability to promise any contributors any amount of this non-existant funding. Until otherwise notified, please consider your work freely contributed. 
+Dongled is a free, non-revenue generating app which costs actual money to keep running via App Store fees and the web domain, not to mention my time. Please be aware I reserve the right to stop distributing it on the AppStore and close down the project git at any time. I accept donations via github donate toward the project but still pay out-of-pocket to keep the app online. Unless otherwise notified, please also consider your work freely contributed. 
 
 ## Dongled Name & Logo are Not Included in the MIT license
 The Dongled name and logo are not included under this license and are subject to separate trademark and branding restrictions. For any uses not permitted under this license, including the use of the name and logo, please contact me via the discussion page for permission.
