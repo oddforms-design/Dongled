@@ -5,26 +5,22 @@ class ViewController: UIViewController {
     
     @IBOutlet weak var noDeviceLabel: UILabel!
     @IBOutlet weak var coverView: UIView!
-    var isInitialLaunch = true
-    var captureSession: AVCaptureSession?
-    var previewLayer: AVCaptureVideoPreviewLayer?
-    var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
-    var sessionBlocked: Bool = false
     
+    var sessionBlocked: Bool = false
+    var isInitialLaunch = true
+
     let audioManager = AudioManager()
+    let captureManager = CaptureManager()
     
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
     }
-    
+        
     override func viewDidLoad() {
         super.viewDidLoad()
+        captureManager.viewController = self
         view.backgroundColor = .black
-        DispatchQueue.main.async {
-            UIApplication.shared.isIdleTimerDisabled = false
-            self.coverView.isHidden = false
-            self.noDeviceLabel.isHidden = false
-        }
+        showIdleUI()
         
         // Register for camera connect/disconnect notifications
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceConnected), name: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil)
@@ -32,118 +28,62 @@ class ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(appWillResignActive), name: UIApplication.willResignActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
       
-            setupCaptureSession()
+        captureManager.setupCaptureSession()
+    }
+    func showConnectingUI() {
+        DispatchQueue.main.async {
+            self.noDeviceLabel.text = "Connecting to Device"
+        }
+    }
+    func showActiveUI() {
+        self.isStatusBarHidden = true
+        DispatchQueue.main.async {
+            UIApplication.shared.isIdleTimerDisabled = true
+            self.coverView.isHidden = true
+            self.noDeviceLabel.isHidden = true
+        }
+    }
+    func showIdleUI() {
+        DispatchQueue.main.async {
+            UIApplication.shared.isIdleTimerDisabled = false
+            self.isStatusBarHidden = false
+            self.noDeviceLabel.isHidden = false
+            self.coverView.isHidden = false
+        }
     }
 
-    func setupCaptureSession() {
-        if captureSession == nil {
-            captureSession = AVCaptureSession()
+    
+    @objc func appWillResignActive(_ notification: Notification) {
+            self.audioManager.pauseAudio()
+            print("Session Resigned Active")
+    }
+    
+    //
+    @objc func appDidBecomeActive(_ notification: Notification) {
+        if isInitialLaunch {
+            isInitialLaunch = false
+            return  // Exit early if initial launch
         }
-        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
-        
-        if let device = discoverySession.devices.first {
-            DispatchQueue.main.async {
-                self.noDeviceLabel.text = "Connecting to Device"
-            }
-            // Delay the rest of the code by 2 seconds to ensure device is booted
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-               
-               
-                self.launchSession(with: device)
-                        
-            
-                self.isStatusBarHidden = true
-                DispatchQueue.main.async {
-                    UIApplication.shared.isIdleTimerDisabled = true
-                    self.coverView.isHidden = true
-                    self.noDeviceLabel.isHidden = true
-                }
-            }
+        if sessionBlocked { // Session was unplugged outside the app
+            print("App became active. Attempting to discover and reconnect session.")
+            captureManager.rebootSession()
+            sessionBlocked = false
         } else {
-            DispatchQueue.main.async {
-                UIApplication.shared.isIdleTimerDisabled = false
-                self.isStatusBarHidden = false
-                self.noDeviceLabel.isHidden = false
-                self.coverView.isHidden = false
+            // Session was not unplugged, but app resigned, resuming
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { // Delay for device needed to prevent audio drop
+                self.audioManager.startAudio()
+                self.captureManager.startSession()
+                print("Session Resumed Unblocked Active")
             }
         }
     }
     
-    // Main Setup Functions
-    
-    func launchSession(with device: AVCaptureDevice) {
-        self.captureSession?.beginConfiguration()
-        self.setupDeviceInput(for: device)
-        audioManager.self.setupAudioSession()
-        audioManager.self.setupAudioEngine()
-        audioManager.self.configureAudio(forCaptureSession: self.captureSession!)
-        audioManager.self.startAudio()
-        self.captureSession?.commitConfiguration()
-        self.startSession()
-    }
-    
-    func setupDeviceInput(for device: AVCaptureDevice) {
-        do {
-            let input = try AVCaptureDeviceInput(device: device)
-            guard let session = captureSession else {
-                print("Session is nil")
-                return
-            }
-            if session.canAddInput(input) {
-                session.addInput(input)
-                print("Added input: \(session.inputs)")
-            }
-            
-            DispatchQueue.main.async {
-                self.noDeviceLabel.isHidden = true
-            }
-            setupPreviewLayer(for: session)
-            
-            
-        } catch {
-            print("Error setting up capture session input: \(error)")
-        }
-    }
-    
-    func setupPreviewLayer(for session: AVCaptureSession) {
-        // Remove the old preview layer if it exists
-        previewLayer?.removeFromSuperlayer()
-        
-        previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        guard let previewLayer = previewLayer else {
-            print("Error setting up preview layer")
-            return
-        }
-        
-        DispatchQueue.main.async {
-            previewLayer.frame = self.view.bounds
-            previewLayer.videoGravity = .resizeAspect
-            previewLayer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))
-            self.view.layer.insertSublayer(previewLayer, at: 0)
-        }
-        
-        if let device = self.captureSession?.inputs.first as? AVCaptureDeviceInput {
-            self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device.device, previewLayer: previewLayer)
-            self.applyVideoRotationForPreview()
-        }
-        
-    }
-    
-    func startSession() {
-        guard let session = captureSession else {
-            print("Session is nil")
-            return
-        }
-        DispatchQueue.global(qos: .userInitiated).async {
-            session.startRunning()
-        }
-    }
-    
+    // Helpers //
     // Connects and Active
     
     @objc func handleDeviceConnected(notification: Notification) {
         if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
-            rebootSession()
+            captureManager.rebootSession()
         }
     }
     
@@ -156,8 +96,8 @@ class ViewController: UIViewController {
             self.noDeviceLabel.text = "Scanning for Hardware"
         }
         
-        sessionStop()
-        
+        captureManager.sessionStop()
+        /*
         // Remove input associated with disconnected device
         if let session = captureSession {
             for input in session.inputs {
@@ -169,7 +109,7 @@ class ViewController: UIViewController {
         
         // Stop the audio player node and engine & disconnect audio input
         audioManager.stopAudio(withCaptureSession: captureSession)
-        
+        */
         print("Session disconnect")
         
         DispatchQueue.main.async {
@@ -181,81 +121,7 @@ class ViewController: UIViewController {
         }
     }
     
-    @objc func appWillResignActive(_ notification: Notification) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.audioManager.pauseAudio()
-            self.sessionStop()
-            print("Session Resigned Active")
-        }
-    }
     
-    //
-    @objc func appDidBecomeActive(_ notification: Notification) {
-        if isInitialLaunch {
-            isInitialLaunch = false
-            return  // Exit early if initial launch
-        }
-        if sessionBlocked { // Session was unplugged outside the app
-            print("App became active. Attempting to discover and reconnect session.")
-            rebootSession()
-            sessionBlocked = false
-        } else {
-            // Session was not unplugged, but app resigned, resuming
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { // Delay for device needed to prevent audio drop
-                self.audioManager.startAudio()
-                self.startSession()
-                print("Session Resumed Unblocked Active")
-            }
-        }
-    }
-    
-    // Helpers //
-    func rebootSession(){
-        sessionStop()
-        
-        DispatchQueue.main.async {
-            self.noDeviceLabel.text = "Connecting to Device"
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-            if UIApplication.shared.applicationState == .active {
-                let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
-                    
-                if let device = discoverySession.devices.first {
-                    self.launchSession(with: device)
-
-                    DispatchQueue.main.async {
-                        UIApplication.shared.isIdleTimerDisabled = true
-                        self.isStatusBarHidden = true
-                        self.coverView.isHidden = true
-                        self.noDeviceLabel.isHidden = true
-                        }
-                    }
-                } else {
-                    self.sessionBlocked = true
-                    print("App is not active. Preventing session start.")
-                }
-            }
-    }
-    func sessionStop() {
-        if let session = captureSession
-        {
-            session.stopRunning()
-        }
-    }
-    
-    // Video Setup
-
-    func applyVideoRotationForPreview() {
-        guard let previewLayerConnection = previewLayer?.connection, let rotationCoordinator = rotationCoordinator else {
-            return
-        }
-        
-        let rotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview
-        if previewLayerConnection.isVideoRotationAngleSupported(rotationAngle) {
-            previewLayerConnection.videoRotationAngle = rotationAngle
-        }
-    }
     // UI Helpers
     var isStatusBarHidden = false {
         didSet {
