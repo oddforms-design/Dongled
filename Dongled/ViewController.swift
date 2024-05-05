@@ -107,9 +107,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
             DispatchQueue.main.async {
                 self.noDeviceLabel.isHidden = true
             }
-            setMaxSupportedResolution(for: captureSession!)
-            let preset = captureSession!.sessionPreset
-               print("Capture Session is running at resolution: \(resolutionString(for: preset))")
             setupPreviewLayer(for: session)
             
             
@@ -259,33 +256,6 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
     }
     
     // Video Setup
-    func setMaxSupportedResolution(for session: AVCaptureSession) {
-        let presetsInDecreasingOrder: [AVCaptureSession.Preset] = [
-            .hd4K3840x2160,
-            .hd1920x1080,
-            .inputPriority
-        ]
-
-        for preset in presetsInDecreasingOrder {
-            if session.canSetSessionPreset(preset) {
-                session.sessionPreset = preset
-                break
-            }
-        }
-    }
-    
-    func resolutionString(for preset: AVCaptureSession.Preset) -> String {
-        switch preset {
-        case .hd4K3840x2160:
-            return "3840x2160"
-        case .hd1920x1080:
-            return "1920x1080"
-        case .inputPriority:
-            return "Input Priority"
-        default:
-            return "Unknown"
-        }
-    }
 
     func applyVideoRotationForPreview() {
         guard let previewLayerConnection = previewLayer?.connection, let rotationCoordinator = rotationCoordinator else {
