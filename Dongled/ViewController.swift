@@ -8,9 +8,9 @@ class ViewController: UIViewController {
     
     var sessionBlocked: Bool = false
     var isInitialLaunch = true
-
-    let audioManager = AudioManager()
+    
     let captureManager = CaptureManager()
+    let audioManager = AudioManager()
     
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
@@ -21,18 +21,26 @@ class ViewController: UIViewController {
         captureManager.viewController = self
         view.backgroundColor = .black
         showIdleUI()
-        
+        registerNotifications()
+        // Start the session
+        captureManager.setupCaptureSession()
+    }
+    
+    func registerNotifications() {
         // Register for camera connect/disconnect notifications
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceConnected), name: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceDisconnected), name: NSNotification.Name.AVCaptureDeviceWasDisconnected, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(appWillResignActive), name: UIApplication.willResignActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
-      
-        captureManager.setupCaptureSession()
     }
-    func showConnectingUI() {
+    func showConnectingTextUI() {
         DispatchQueue.main.async {
             self.noDeviceLabel.text = "Connecting to Device"
+        }
+    }
+    func showScanningTextUI() {
+        DispatchQueue.main.async {
+            self.noDeviceLabel.text = "Scanning for Hardware"
         }
     }
     func showActiveUI() {
@@ -52,13 +60,11 @@ class ViewController: UIViewController {
         }
     }
 
-    
     @objc func appWillResignActive(_ notification: Notification) {
             self.audioManager.pauseAudio()
             print("Session Resigned Active")
     }
     
-    //
     @objc func appDidBecomeActive(_ notification: Notification) {
         if isInitialLaunch {
             isInitialLaunch = false
@@ -91,36 +97,8 @@ class ViewController: UIViewController {
         guard let device = notification.object as? AVCaptureDevice, device.deviceType == .external else {
             return
         }
-        
-        DispatchQueue.main.async {
-            self.noDeviceLabel.text = "Scanning for Hardware"
-        }
-        
-        captureManager.sessionStop()
-        /*
-        // Remove input associated with disconnected device
-        if let session = captureSession {
-            for input in session.inputs {
-                if let deviceInput = input as? AVCaptureDeviceInput, deviceInput.device == device {
-                    session.removeInput(deviceInput)
-                }
-            }
-        }
-        
-        // Stop the audio player node and engine & disconnect audio input
-        audioManager.stopAudio(withCaptureSession: captureSession)
-        */
-        print("Session disconnect")
-        
-        DispatchQueue.main.async {
-            UIApplication.shared.isIdleTimerDisabled = false
-            self.isStatusBarHidden = false
-            self.noDeviceLabel.isHidden = false
-            self.coverView.isHidden = false
-            
-        }
+        captureManager.deviceDisconnected(for: device)
     }
-    
     
     // UI Helpers
     var isStatusBarHidden = false {

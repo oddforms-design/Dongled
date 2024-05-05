@@ -6,6 +6,7 @@
 //
 
 import AVFoundation
+import UIKit
 
 class CaptureManager {
     
@@ -24,39 +25,31 @@ class CaptureManager {
         let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
         
         if let device = discoverySession.devices.first {
-            if let viewController = viewController {
-                viewController.showConnectingUI()
-            } else {
-                print("Could not access viewcontroller")
-            }
+            viewController?.showConnectingTextUI()
             // Delay the rest of the code by 2 seconds to ensure device is booted
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
                 guard let self = self else { return }
                 
                 self.launchSession(with: device)
                 
-                if let viewController = self.viewController {
-                    viewController.showActiveUI()
-                }
+                viewController?.showActiveUI()
             }
         } else {
-            if let viewController = self.viewController {
-                viewController.showIdleUI()
-            }
+            viewController?.showIdleUI()
         }
     }
     
     // Main Setup Functions
     
     func launchSession(with device: AVCaptureDevice) {
-        self.captureSession?.beginConfiguration()
-        self.setupDeviceInput(for: device)
-        audioManager.self.setupAudioSession()
-        audioManager.self.setupAudioEngine()
-        audioManager.self.configureAudio(forCaptureSession: self.captureSession!)
-        audioManager.self.startAudio()
-        self.captureSession?.commitConfiguration()
-        self.startSession()
+        captureSession?.beginConfiguration()
+        setupDeviceInput(for: device)
+        audioManager.setupAudioSession()
+        audioManager.setupAudioEngine()
+        audioManager.configureAudio(forCaptureSession: self.captureSession!)
+        audioManager.startAudio()
+        captureSession?.commitConfiguration()
+        startSession()
     }
     
     func setupDeviceInput(for device: AVCaptureDevice) {
@@ -71,14 +64,9 @@ class CaptureManager {
                 print("Added input: \(session.inputs)")
             }
             
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                
-                self.viewController?.noDeviceLabel.isHidden = true
-            }
-
-            setupPreviewLayer(for: session)
+            viewController?.noDeviceLabel.isHidden = true
             
+            setupPreviewLayer(for: session)
             
         } catch {
             print("Error setting up capture session input: \(error)")
@@ -109,33 +97,58 @@ class CaptureManager {
             self.applyVideoRotationForPreview()
         }
     }
-
-    func rebootSession(){/*
+    func applyVideoRotationForPreview() {
+        guard let previewLayerConnection = previewLayer?.connection, let rotationCoordinator = rotationCoordinator else {
+            return
+        }
+        
+        let rotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview
+        if previewLayerConnection.isVideoRotationAngleSupported(rotationAngle) {
+            previewLayerConnection.videoRotationAngle = rotationAngle
+        }
+    }
+    func deviceDisconnected(for device: AVCaptureDevice) {
+        if let viewController = self.viewController {
+            viewController.showScanningTextUI()
+        }
+        
         sessionStop()
         
-        DispatchQueue.main.async {
-            self.viewController.showConnectingUI()
+         // Remove input associated with disconnected device
+        if let session = captureSession {
+            for input in session.inputs {
+                if let deviceInput = input as? AVCaptureDeviceInput, deviceInput.device == device {
+                    session.removeInput(deviceInput)
+                }
+            }
         }
+         
+        // Stop the audio player node and engine & disconnect audio input
+        audioManager.stopAudio(withCaptureSession: captureSession)
+        
+        viewController?.showIdleUI()
+        
+        print("Session disconnect")
+    }
+    func rebootSession(){
+        // Clean up
+        sessionStop()
+        
+        viewController?.showConnectingTextUI()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { // Wait for Hardware
             if UIApplication.shared.applicationState == .active {
                 let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
                     
                 if let device = discoverySession.devices.first {
                     self.launchSession(with: device)
-
-                    DispatchQueue.main.async {
-                        UIApplication.shared.isIdleTimerDisabled = true
-                        self.isStatusBarHidden = true
-                        self.coverView.isHidden = true
-                        self.noDeviceLabel.isHidden = true
-                        }
+                    self.viewController?.showActiveUI()
                     }
                 } else {
-                    self.sessionBlocked = true
+                    self.viewController?.sessionBlocked = true
                     print("App is not active. Preventing session start.")
                 }
-            }*/
+            }
     }
     func startSession() {
         guard let session = captureSession else {
@@ -153,15 +166,6 @@ class CaptureManager {
             session.stopRunning()
         }
     }
-    func applyVideoRotationForPreview() {
-        guard let previewLayerConnection = previewLayer?.connection, let rotationCoordinator = rotationCoordinator else {
-            return
-        }
-        
-        let rotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview
-        if previewLayerConnection.isVideoRotationAngleSupported(rotationAngle) {
-            previewLayerConnection.videoRotationAngle = rotationAngle
-        }
-    }
+    
    
 }
