@@ -11,43 +11,41 @@ import UIKit
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var isInitialLaunch = true
-    var sessionBlocked: Bool = false
+    var rebootNeeded: Bool = false
     let viewController = ViewController()
     let audioManager = AudioManager()
     
+    
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Listen for resign
-        NotificationCenter.default.addObserver(self, selector: #selector(applicationWillResignActive(_:)), name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(applicationDidEnterBackground(_:)), name: UIApplication.didEnterBackgroundNotification, object: nil)
         // Listen for resume
-        NotificationCenter.default.addObserver(self, selector: #selector(applicationDidBecomeActive(_:)), name: UIApplication.didBecomeActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(applicationWillEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
         return true
     }
     
     // MARK: AppSession Lifecycle
-    func applicationDidBecomeActive(_ application: UIApplication) {
+    func applicationWillEnterForeground(_ application: UIApplication) {
         if isInitialLaunch {
             isInitialLaunch = false
             return  // Exit early if initial launch
         }
-        if sessionBlocked { // Session was unplugged outside the app
-            print("App became active. Attempting to discover and reconnect session.")
-            viewController.rebootSession()
-            sessionBlocked = false
+        if rebootNeeded { // Session was unplugged outside the app
+            print("App in Foreground. Attempting to discover and reconnect session.")
+            //viewController.rebootSession()
+            rebootNeeded = false
         } else {
-            // Session was not unplugged, but app resigned, resuming
+            // Session was not unplugged, but app entered background, resuming
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { // Delay for device needed to prevent audio drop
-                self.audioManager.startAudio()
-                self.viewController.startSession()
-                print("Session Resumed Unblocked Active")
+              
+                print("Session Resumed")
             }
         }
     }
     
-     func applicationWillResignActive(_ application: UIApplication) {
-                self.audioManager.pauseAudio()
-                self.viewController.sessionStop()
-                print("Session Resigned Active")
-            
+     func applicationDidEnterBackground(_ application: UIApplication) {
+         self.audioManager.pauseAudio()
+                print("Application Quit")
     }
     
     func applicationWillTerminate(_ application: UIApplication) {

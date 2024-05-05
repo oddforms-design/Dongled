@@ -25,7 +25,7 @@ class ViewController: UIViewController {
             }
         }
     }
-    
+    // MARK: viewDidLoad
     override func viewDidLoad() {
         super.viewDidLoad()
         configureInitialViewState()
@@ -33,7 +33,7 @@ class ViewController: UIViewController {
         setupCaptureSession()
     }
 
-    private func configureInitialViewState() {
+    func configureInitialViewState() {
         view.backgroundColor = .black
         DispatchQueue.main.async {
             UIApplication.shared.isIdleTimerDisabled = false
@@ -42,7 +42,7 @@ class ViewController: UIViewController {
         }
     }
 
-    private func registerForNotifications() {
+    func registerForNotifications() {
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceConnected), name: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceDisconnected), name: NSNotification.Name.AVCaptureDeviceWasDisconnected, object: nil)
     }
@@ -50,7 +50,6 @@ class ViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
     }
-
 
     func setupCaptureSession() {
         if captureSession == nil {
@@ -64,11 +63,9 @@ class ViewController: UIViewController {
             }
             // Delay the rest of the code by 2 seconds to ensure device is booted
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-               
-               
+                // Start the session
                 self.launchSession(with: device)
-                        
-            
+                // Change to Session UI
                 self.isStatusBarHidden = true
                 DispatchQueue.main.async {
                     UIApplication.shared.isIdleTimerDisabled = true
@@ -86,24 +83,24 @@ class ViewController: UIViewController {
         }
     }
     
-    // Main Setup Functions
+    // MARK: Launch Setup
     
     func launchSession(with device: AVCaptureDevice) {
-        self.captureSession?.beginConfiguration()
-        self.setupDeviceInput(for: device)
-        audioManager.self.setupAudioSession()
-        audioManager.self.setupAudioEngine()
-        audioManager.self.configureAudio(forCaptureSession: self.captureSession!)
-        audioManager.self.startAudio()
-        self.captureSession?.commitConfiguration()
-        self.startSession()
+        captureSession?.beginConfiguration()
+        setupDeviceInput(for: device)
+        audioManager.setupAudioSession()
+        audioManager.setupAudioEngine()
+        audioManager.configureAudio(forCaptureSession: self.captureSession!)
+        audioManager.startAudio()
+        captureSession?.commitConfiguration()
+        startSession()
     }
     
     func setupDeviceInput(for device: AVCaptureDevice) {
         do {
             let input = try AVCaptureDeviceInput(device: device)
             guard let session = captureSession else {
-                print("Session is nil")
+                print("Session is niltastic")
                 return
             }
             if session.canAddInput(input) {
@@ -146,9 +143,21 @@ class ViewController: UIViewController {
         
     }
     
+    // Set Device Rotation //
+    func applyVideoRotationForPreview() {
+        guard let previewLayerConnection = previewLayer?.connection, let rotationCoordinator = rotationCoordinator else {
+            return
+        }
+        
+        let rotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview
+        if previewLayerConnection.isVideoRotationAngleSupported(rotationAngle) {
+            previewLayerConnection.videoRotationAngle = rotationAngle
+        }
+    }
+    
     func startSession() {
         guard let session = captureSession else {
-            print("Session is nil")
+            print("Session is nil to bill")
             return
         }
         DispatchQueue.global(qos: .userInitiated).async {
@@ -156,7 +165,7 @@ class ViewController: UIViewController {
         }
     }
     
-    // Connects and Active
+    // MARK: Connects & Disconnects
     
     @objc func handleDeviceConnected(notification: Notification) {
         if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
@@ -198,10 +207,8 @@ class ViewController: UIViewController {
         }
     }
     
-    // Helpers //
+    // MARK: Helpers
     func rebootSession(){
-        sessionStop()
-        
         DispatchQueue.main.async {
             self.noDeviceLabel.text = "Connecting to Device"
         }
@@ -221,8 +228,10 @@ class ViewController: UIViewController {
                         }
                     }
                 } else {
-                    //self.AppDelegate.sessionBlocked = true
-                    print("App is inactive, do not connect to device")
+                    print("Hotplug while inactive, trigger a reboot next active session")
+                    if let appDelegate = UIApplication.shared.delegate as? AppDelegate {
+                        appDelegate.rebootNeeded = true //
+                    }
                     return
                 }
             }
@@ -233,20 +242,8 @@ class ViewController: UIViewController {
             session.stopRunning()
         }
     }
-    
-    // Set Device Rotation
-    func applyVideoRotationForPreview() {
-        guard let previewLayerConnection = previewLayer?.connection, let rotationCoordinator = rotationCoordinator else {
-            return
-        }
-        
-        let rotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview
-        if previewLayerConnection.isVideoRotationAngleSupported(rotationAngle) {
-            previewLayerConnection.videoRotationAngle = rotationAngle
-        }
-    }
 
-    // Util
+    // MARK: Util
     deinit {
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasDisconnected, object: nil)

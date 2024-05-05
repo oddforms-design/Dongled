@@ -141,7 +141,7 @@ class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
     }
     
     func pauseAudio() {
-        audioPlayerNode?.pause()
+        audioEngine?.stop()
     }
     func playAudio() {
         audioPlayerNode?.play()
