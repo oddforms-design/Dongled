@@ -5,35 +5,52 @@ class ViewController: UIViewController {
     
     @IBOutlet weak var noDeviceLabel: UILabel!
     @IBOutlet weak var coverView: UIView!
-    var isInitialLaunch = true
     var captureSession: AVCaptureSession?
     var previewLayer: AVCaptureVideoPreviewLayer?
     var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
-    var sessionBlocked: Bool = false
     
     let audioManager = AudioManager()
     
+    // Setup the UI for Fullscreen Viewing
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
+    }
+    override var prefersStatusBarHidden: Bool {
+        return isStatusBarHidden
+    }
+    var isStatusBarHidden = false {
+        didSet {
+            DispatchQueue.main.async {
+                self.setNeedsStatusBarAppearanceUpdate()
+            }
+        }
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        configureInitialViewState()
+        registerForNotifications()
+        setupCaptureSession()
+    }
+
+    private func configureInitialViewState() {
         view.backgroundColor = .black
         DispatchQueue.main.async {
             UIApplication.shared.isIdleTimerDisabled = false
             self.coverView.isHidden = false
             self.noDeviceLabel.isHidden = false
         }
-        
-        // Register for camera connect/disconnect notifications
+    }
+
+    private func registerForNotifications() {
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceConnected), name: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceDisconnected), name: NSNotification.Name.AVCaptureDeviceWasDisconnected, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(appWillResignActive), name: UIApplication.willResignActiveNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
-      
-            setupCaptureSession()
     }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+    }
+
 
     func setupCaptureSession() {
         if captureSession == nil {
@@ -181,34 +198,6 @@ class ViewController: UIViewController {
         }
     }
     
-    @objc func appWillResignActive(_ notification: Notification) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.audioManager.pauseAudio()
-            self.sessionStop()
-            print("Session Resigned Active")
-        }
-    }
-    
-    //
-    @objc func appDidBecomeActive(_ notification: Notification) {
-        if isInitialLaunch {
-            isInitialLaunch = false
-            return  // Exit early if initial launch
-        }
-        if sessionBlocked { // Session was unplugged outside the app
-            print("App became active. Attempting to discover and reconnect session.")
-            rebootSession()
-            sessionBlocked = false
-        } else {
-            // Session was not unplugged, but app resigned, resuming
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { // Delay for device needed to prevent audio drop
-                self.audioManager.startAudio()
-                self.startSession()
-                print("Session Resumed Unblocked Active")
-            }
-        }
-    }
-    
     // Helpers //
     func rebootSession(){
         sessionStop()
@@ -232,8 +221,9 @@ class ViewController: UIViewController {
                         }
                     }
                 } else {
-                    self.sessionBlocked = true
-                    print("App is not active. Preventing session start.")
+                    //self.AppDelegate.sessionBlocked = true
+                    print("App is inactive, do not connect to device")
+                    return
                 }
             }
     }
@@ -244,8 +234,7 @@ class ViewController: UIViewController {
         }
     }
     
-    // Video Setup
-
+    // Set Device Rotation
     func applyVideoRotationForPreview() {
         guard let previewLayerConnection = previewLayer?.connection, let rotationCoordinator = rotationCoordinator else {
             return
@@ -256,24 +245,11 @@ class ViewController: UIViewController {
             previewLayerConnection.videoRotationAngle = rotationAngle
         }
     }
-    // UI Helpers
-    var isStatusBarHidden = false {
-        didSet {
-            DispatchQueue.main.async {
-                self.setNeedsStatusBarAppearanceUpdate()
-            }
-        }
-    }
-    
-    override var prefersStatusBarHidden: Bool {
-        return isStatusBarHidden
-    }
+
     // Util
     deinit {
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasConnected, object: nil)
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasDisconnected, object: nil)
-        NotificationCenter.default.removeObserver(self)
-        isInitialLaunch = true
     }
 
 }

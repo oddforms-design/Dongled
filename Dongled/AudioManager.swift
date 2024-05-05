@@ -167,7 +167,7 @@ class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
             }
         }
         
-        // Remove audio outputs in case of switch to stereo
+        // Remove audio outputs in case of hardware switch to stereo
         for output in session.outputs {
             if output is AVCaptureAudioDataOutput {
                 session.removeOutput(output)
