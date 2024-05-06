@@ -18,7 +18,7 @@ class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
         return AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: detectedChannels, interleaved: false)
     }
     private var tapArmed: Bool = false
-    
+    //MARK: Main Audio Setup
     // Audio Session
     func setupAudioSession() {
         let audioSession = AVAudioSession.sharedInstance()
@@ -53,7 +53,7 @@ class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
         audioEngine.connect(audioPlayerNode, to: audioEngine.mainMixerNode, format: safePCMFormat)
         audioPlayerNode.volume = 1.0
     }
-    
+    // Add Audio Inputs to Session
     func configureAudio(forCaptureSession session: AVCaptureSession) {
         
         let audioDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.microphone], mediaType: .audio, position: .unspecified)
@@ -86,8 +86,7 @@ class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
             print("Adding Audio Output")
         }
     }
-
-    
+    // Start the audio and connect the tap
     func startAudio() {
         
         if detectedChannels == 0 {
@@ -112,7 +111,8 @@ class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
         bufferTap()
         
     }
-    // Audio Helpers
+    //MARK: Audio Helpers
+    // Create a tap to check the buffer for data, ensures audioSession control for Bluetooth
     func bufferTap() {
         if tapArmed {
             print("Tap is already armed.")
@@ -124,13 +124,14 @@ class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
         
         audioPlayerNode?.installTap(onBus: 0, bufferSize: 64, format: nil) { (buffer, time) in
             if buffer.frameLength > 0 {
+                // Now that the buffer has started, we can start an audioSession
                 self.setupAudioSession()
                 self.audioPlayerNode?.removeTap(onBus: 0)
                 self.tapArmed = false
                 print("Tap Disarmed")
             }
         }
-        // Tap Removal failsafe if unplugged immediately after plug
+        // Tap Removal failsafe if unplugged or resignactive immediately after plug
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
             if self.tapArmed { // Check if tap is still installed
                 self.audioPlayerNode?.removeTap(onBus: 0)
@@ -174,7 +175,6 @@ class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
             }
         }
     }
-
     
     // Connect the Output to the Sample Buffer
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
@@ -189,8 +189,7 @@ class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
         }
     }
     
-    
-    // The PCM Sample Buffer
+    // MARK: PCM Sample Buffer
     func sampleBufferToPCMBuffer(_ sampleBuffer: CMSampleBuffer) -> AVAudioPCMBuffer? {
         // Check buffer validity
         if !CMSampleBufferIsValid(sampleBuffer) {

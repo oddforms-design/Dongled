@@ -10,23 +10,24 @@ import UIKit
 
 class CaptureManager {
     
-    let audioManager = AudioManager()
-    var viewController: ViewController?
-    
     var captureSession: AVCaptureSession?
     var previewLayer: AVCaptureVideoPreviewLayer?
     var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
    
+    let audioManager = AudioManager()
+    var viewController: ViewController?
     
+    // Main Startup Method
     func setupCaptureSession() {
         if captureSession == nil {
             captureSession = AVCaptureSession()
         }
+        // Find the external device
         let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
-        
+        // Device Found
         if let device = discoverySession.devices.first {
             viewController?.showConnectingTextUI()
-            // Delay the rest of the code by 2 seconds to ensure device is booted
+            // Delay the rest of the code by 2 seconds to allow device to boot
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
                 guard let self = self else { return }
                 
@@ -34,13 +35,13 @@ class CaptureManager {
                 
                 viewController?.showActiveUI()
             }
-        } else {
+        } else { // Device not found, Show Idle UI
             viewController?.showIdleUI()
         }
     }
     
-    // Main Setup Functions
-    
+    // MARK: Main Capture Setup
+    // Configure the session
     func launchSession(with device: AVCaptureDevice) {
         captureSession?.beginConfiguration()
         setupDeviceInput(for: device)
@@ -51,7 +52,7 @@ class CaptureManager {
         captureSession?.commitConfiguration()
         startSession()
     }
-    
+    // Add inputs to session
     func setupDeviceInput(for device: AVCaptureDevice) {
         do {
             let input = try AVCaptureDeviceInput(device: device)
@@ -72,7 +73,7 @@ class CaptureManager {
             print("Error setting up capture session input: \(error)")
         }
     }
-    
+    // Create a preivewLayer
     func setupPreviewLayer(for session: AVCaptureSession) {
         // Remove the old preview layer if it exists
         previewLayer?.removeFromSuperlayer()
@@ -97,6 +98,7 @@ class CaptureManager {
             self.applyVideoRotationForPreview()
         }
     }
+    // Rotate and Mirror the previewLayer for Landscape
     func applyVideoRotationForPreview() {
         guard let previewLayerConnection = previewLayer?.connection, let rotationCoordinator = rotationCoordinator else {
             return
@@ -107,13 +109,13 @@ class CaptureManager {
             previewLayerConnection.videoRotationAngle = rotationAngle
         }
     }
+    // MARK: Helpers
+    // Cleanup when device is disconnected
     func deviceDisconnected(for device: AVCaptureDevice) {
         if let viewController = self.viewController {
             viewController.showScanningTextUI()
         }
-        
         sessionStop()
-        
          // Remove input associated with disconnected device
         if let session = captureSession {
             for input in session.inputs {
@@ -127,11 +129,11 @@ class CaptureManager {
         audioManager.stopAudio(withCaptureSession: captureSession)
         
         viewController?.showIdleUI()
-        
         print("Session disconnect")
     }
+    // Reboot Session after a hotplug or unplug outside the app
     func rebootSession(){
-        // Clean up
+        // Stop session if running
         sessionStop()
         
         viewController?.showConnectingTextUI()
@@ -150,6 +152,7 @@ class CaptureManager {
                 }
             }
     }
+    // Start or Resume a Capture Session
     func startSession() {
         guard let session = captureSession else {
             print("Session is nil")
@@ -159,13 +162,11 @@ class CaptureManager {
             session.startRunning()
         }
     }
-    
+    // Stop the Capture Session
     func sessionStop() {
         if let session = captureSession
         {
             session.stopRunning()
         }
     }
-    
-   
 }

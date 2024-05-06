@@ -9,13 +9,27 @@ class ViewController: UIViewController {
     var sessionBlocked: Bool = false
     var isInitialLaunch = true
     
-    let captureManager = CaptureManager()
-    let audioManager = AudioManager()
-    
+    // Visual Overrides
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
     }
-        
+    var isStatusBarHidden = false {
+        didSet {
+            DispatchQueue.main.async {
+                self.setNeedsStatusBarAppearanceUpdate()
+            }
+        }
+    }
+    
+    override var prefersStatusBarHidden: Bool {
+        return isStatusBarHidden
+    }
+    
+    // Connect Classes
+    let captureManager = CaptureManager()
+    let audioManager = AudioManager()
+    
+    // Setup View and Start Session
     override func viewDidLoad() {
         super.viewDidLoad()
         captureManager.viewController = self
@@ -26,6 +40,7 @@ class ViewController: UIViewController {
         captureManager.setupCaptureSession()
     }
     
+    // Setup Listeners
     func registerNotifications() {
         // Register for camera connect/disconnect notifications
         NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceConnected), name: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil)
@@ -33,6 +48,44 @@ class ViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(appWillResignActive), name: UIApplication.willResignActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
     }
+    
+    // App Lifecycle Events
+    @objc func appWillResignActive(_ notification: Notification) {
+            self.audioManager.pauseAudio()
+            print("Session Resigned Active")
+    }
+    @objc func appDidBecomeActive(_ notification: Notification) {
+        if isInitialLaunch {
+            isInitialLaunch = false
+            return  // Exit early if initial launch
+        }
+        if sessionBlocked { // Session was unplugged outside the app
+            print("App became active. Attempting to discover and reconnect session.")
+            captureManager.rebootSession()
+            sessionBlocked = false
+        } else {
+            // Session was not unplugged, but app resigned, resuming
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { // Delay for device needed to prevent audio drop
+                self.audioManager.startAudio()
+                self.captureManager.startSession()
+                print("Session Resumed Unblocked Active")
+            }
+        }
+    }
+    
+    // Hotplug Logic
+    @objc func handleDeviceConnected(notification: Notification) {
+        captureManager.rebootSession()
+    }
+    
+    @objc func handleDeviceDisconnected(notification: Notification) {
+        guard let device = notification.object as? AVCaptureDevice, device.deviceType == .external else {
+            return
+        }
+        captureManager.deviceDisconnected(for: device)
+    }
+    
+    // UI Helpers
     func showConnectingTextUI() {
         DispatchQueue.main.async {
             self.noDeviceLabel.text = "Connecting to Device"
@@ -59,59 +112,7 @@ class ViewController: UIViewController {
             self.coverView.isHidden = false
         }
     }
-
-    @objc func appWillResignActive(_ notification: Notification) {
-            self.audioManager.pauseAudio()
-            print("Session Resigned Active")
-    }
     
-    @objc func appDidBecomeActive(_ notification: Notification) {
-        if isInitialLaunch {
-            isInitialLaunch = false
-            return  // Exit early if initial launch
-        }
-        if sessionBlocked { // Session was unplugged outside the app
-            print("App became active. Attempting to discover and reconnect session.")
-            captureManager.rebootSession()
-            sessionBlocked = false
-        } else {
-            // Session was not unplugged, but app resigned, resuming
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { // Delay for device needed to prevent audio drop
-                self.audioManager.startAudio()
-                self.captureManager.startSession()
-                print("Session Resumed Unblocked Active")
-            }
-        }
-    }
-    
-    // Helpers //
-    // Connects and Active
-    
-    @objc func handleDeviceConnected(notification: Notification) {
-        if let device = notification.object as? AVCaptureDevice, device.deviceType == .external {
-            captureManager.rebootSession()
-        }
-    }
-    
-    @objc func handleDeviceDisconnected(notification: Notification) {
-        guard let device = notification.object as? AVCaptureDevice, device.deviceType == .external else {
-            return
-        }
-        captureManager.deviceDisconnected(for: device)
-    }
-    
-    // UI Helpers
-    var isStatusBarHidden = false {
-        didSet {
-            DispatchQueue.main.async {
-                self.setNeedsStatusBarAppearanceUpdate()
-            }
-        }
-    }
-    
-    override var prefersStatusBarHidden: Bool {
-        return isStatusBarHidden
-    }
     // Util
     deinit {
         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceWasConnected, object: nil)
