@@ -89,6 +89,16 @@ class CaptureManager {
             
             previewLayer.frame = viewController.view.bounds
             previewLayer.videoGravity = .resizeAspect
+            
+            // Workaround for canvas flipping on mac
+            if #available(iOS 14.0, *), NSClassFromString("NSApplication") != nil {
+                print("Running as Designed for iPad on macOS")
+                previewLayer.setAffineTransform(CGAffineTransform(scaleX: 1, y: -1))
+            } else {
+                print("Assume Running as iOS")
+                previewLayer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))
+            }
+
             viewController.view.layer.insertSublayer(previewLayer, at: 0)
         }
         
