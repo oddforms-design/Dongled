@@ -73,7 +73,7 @@ class CaptureManager {
             print("Error setting up capture session input: \(error)")
         }
     }
-    // Create a preivewLayer
+    // Create a previewLayer
     func setupPreviewLayer(for session: AVCaptureSession) {
         // Remove the old preview layer if it exists
         previewLayer?.removeFromSuperlayer()
@@ -89,7 +89,6 @@ class CaptureManager {
             
             previewLayer.frame = viewController.view.bounds
             previewLayer.videoGravity = .resizeAspect
-            previewLayer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))
             viewController.view.layer.insertSublayer(previewLayer, at: 0)
         }
         

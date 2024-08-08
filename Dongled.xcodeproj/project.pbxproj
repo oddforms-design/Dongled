@@ -14,6 +14,7 @@
 		3B46D2D82AA8E82C00272E45 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3B46D2D62AA8E82C00272E45 /* Main.storyboard */; };
 		3B46D2DA2AA8E82D00272E45 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3B46D2D92AA8E82D00272E45 /* Assets.xcassets */; };
 		3B46D2DD2AA8E82D00272E45 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3B46D2DB2AA8E82D00272E45 /* LaunchScreen.storyboard */; };
+		3B829FE22C64FF3300FED8FB /* LaunchIconV138.png in Resources */ = {isa = PBXBuildFile; fileRef = 3B829FE12C64FF3300FED8FB /* LaunchIconV138.png */; };
 		3BC6332E2BE7D60E001E2FCC /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BC6332D2BE7D60E001E2FCC /* AudioManager.swift */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +29,7 @@
 		3B46D2D92AA8E82D00272E45 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3B46D2DC2AA8E82D00272E45 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		3B46D2DE2AA8E82D00272E45 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		3B829FE12C64FF3300FED8FB /* LaunchIconV138.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LaunchIconV138.png; sourceTree = "<group>"; };
 		3BC6332D2BE7D60E001E2FCC /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -71,6 +73,7 @@
 				3B46D2D92AA8E82D00272E45 /* Assets.xcassets */,
 				3B46D2DB2AA8E82D00272E45 /* LaunchScreen.storyboard */,
 				3B46D2DE2AA8E82D00272E45 /* Info.plist */,
+				3B829FE12C64FF3300FED8FB /* LaunchIconV138.png */,
 			);
 			path = Dongled;
 			sourceTree = "<group>";
@@ -135,6 +138,7 @@
 			files = (
 				3B46D2DD2AA8E82D00272E45 /* LaunchScreen.storyboard in Resources */,
 				3B46D2DA2AA8E82D00272E45 /* Assets.xcassets in Resources */,
+				3B829FE22C64FF3300FED8FB /* LaunchIconV138.png in Resources */,
 				3B46D2D82AA8E82C00272E45 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -302,7 +306,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Dongled/Dongled.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 22;
 				DEVELOPMENT_TEAM = V2F5S52T3Q;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Dongled/Info.plist;
@@ -318,12 +322,12 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.6;
+				MARKETING_VERSION = 1.3.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.oddforms.dongled;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -338,7 +342,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Dongled/Dongled.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 22;
 				DEVELOPMENT_TEAM = V2F5S52T3Q;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Dongled/Info.plist;
@@ -354,12 +358,12 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.6;
+				MARKETING_VERSION = 1.3.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.oddforms.dongled;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

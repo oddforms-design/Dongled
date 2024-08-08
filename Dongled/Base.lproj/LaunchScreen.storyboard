@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="22154" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
     <device id="ipad10_9rounded" orientation="landscape" layout="fullscreen" appearance="light"/>
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22130"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22685"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -18,15 +18,15 @@
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="vvn-JS-nA0" userLabel="LogoHolder">
                                 <rect key="frame" x="265" y="324.5" width="650" height="175"/>
                                 <subviews>
-                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchIcon" translatesAutoresizingMaskIntoConstraints="NO" id="tFA-fH-fek">
-                                        <rect key="frame" x="50" y="0.0" width="125" height="125"/>
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchIconV138.png" translatesAutoresizingMaskIntoConstraints="NO" id="tFA-fH-fek">
+                                        <rect key="frame" x="55" y="0.0" width="130" height="130"/>
                                         <constraints>
-                                            <constraint firstAttribute="width" constant="125" id="B4f-bh-nbf"/>
-                                            <constraint firstAttribute="height" constant="125" id="k27-oO-HfA"/>
+                                            <constraint firstAttribute="width" constant="130" id="B4f-bh-nbf"/>
+                                            <constraint firstAttribute="height" constant="130" id="k27-oO-HfA"/>
                                         </constraints>
                                     </imageView>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" usesAttributedText="YES" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="lTE-1r-pY5">
-                                        <rect key="frame" x="140" y="133" width="379.5" height="40"/>
+                                        <rect key="frame" x="140" y="138" width="379.5" height="40"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="40" id="jeG-KO-ZiG"/>
                                         </constraints>
@@ -41,7 +41,7 @@
                                         <nil key="highlightedColor"/>
                                     </label>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Dongled" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="avS-yq-PNZ">
-                                        <rect key="frame" x="203" y="0.0" width="392" height="125"/>
+                                        <rect key="frame" x="198" y="0.0" width="392" height="125"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="125" id="3TJ-gz-cm9"/>
                                         </constraints>
@@ -58,9 +58,9 @@
                                     <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="lTE-1r-pY5" secondAttribute="trailing" constant="100" id="AUF-CZ-cup"/>
                                     <constraint firstItem="lTE-1r-pY5" firstAttribute="leading" secondItem="vvn-JS-nA0" secondAttribute="leading" constant="140" id="ONk-bP-DMc"/>
                                     <constraint firstAttribute="height" constant="175" id="SJN-e4-a4K"/>
-                                    <constraint firstItem="avS-yq-PNZ" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="tFA-fH-fek" secondAttribute="trailing" constant="10" id="XAJ-Kf-jDF"/>
-                                    <constraint firstAttribute="trailing" secondItem="avS-yq-PNZ" secondAttribute="trailing" constant="55" id="cmq-gv-DPe"/>
-                                    <constraint firstItem="tFA-fH-fek" firstAttribute="leading" secondItem="vvn-JS-nA0" secondAttribute="leading" constant="50" id="mzs-AO-Q9P"/>
+                                    <constraint firstItem="avS-yq-PNZ" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="tFA-fH-fek" secondAttribute="trailing" constant="5" id="XAJ-Kf-jDF"/>
+                                    <constraint firstAttribute="trailing" secondItem="avS-yq-PNZ" secondAttribute="trailing" constant="60" id="cmq-gv-DPe"/>
+                                    <constraint firstItem="tFA-fH-fek" firstAttribute="leading" secondItem="vvn-JS-nA0" secondAttribute="leading" constant="55" id="mzs-AO-Q9P"/>
                                     <constraint firstItem="avS-yq-PNZ" firstAttribute="top" secondItem="vvn-JS-nA0" secondAttribute="top" id="qEX-tn-LOF"/>
                                 </constraints>
                             </view>
@@ -79,6 +79,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="LaunchIcon" width="324.5" height="333"/>
+        <image name="LaunchIconV138.png" width="51.919998168945312" height="53.279998779296875"/>
     </resources>
 </document>
