@@ -44,6 +44,7 @@ final class CaptureManager {
                     return
                 }
                 /// Wait for hardware to finish booting
+                self.updateState(.connecting)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
                     self.configureSession(with: device)
                 }
@@ -150,7 +151,7 @@ final class CaptureManager {
         )
         for device in discovery.devices {
             print("Available device: \(device.localizedName) [modelID: \(device.modelID)]")
-            self.updateState(.connecting)
+            //self.updateState(.connecting)
         }
         completion(discovery.devices.first)
     }
@@ -190,21 +191,15 @@ final class CaptureManager {
         }
     }
 
-    // Applies mirroring and rotation to the preview layer based on platform and orientation
+    // Applies mirroring and rotation to the preview layer
     private func transformPreviewLayer() {
         DispatchQueue.main.async { [weak self] in
             guard let self = self,
                   let layer = self.previewLayer,
                   let connection = layer.connection else { return }
-
-            /// Mirroring
-            if #available(iOS 14.0, *), NSClassFromString("NSApplication") != nil {
-                print("Running in MacOS")
-                layer.setAffineTransform(CGAffineTransform(scaleX: 1, y: -1)) // Catalyst/macOS
-            } else {
-                print("Running in iPadOS")
-                layer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1)) // iOS
-            }
+            
+            /// Defualt Mirroring Off
+            layer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))
 
             /// Rotation
             if let coordinator = self.rotationCoordinator {
