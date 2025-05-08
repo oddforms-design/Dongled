@@ -13,3 +13,9 @@ Are you interested in [contributing](https://github.com/oddforms-design/Dongled/
 #### To get the latest version of Dongled, please visit the [Dongled AppStore page](https://apps.apple.com/us/app/dongled/id6465788521).
 
 Dongled requires iPadOS17 or greater and an iPad with a USB-C port. Building the project requires xcode 15.3.
+
+#### Trademark notice
+
+The "Dongled" name and logo are trademarks of Oddforms Design LLC and are not included under the MIT License. Use or distribution of the name or logo is not permitted without written permission.
+
+This project is licensed under the [MIT License](./LICENSE).

@@ -1,5 +1,5 @@
 //
-//  CaptureSessionManager.swift
+//  CaptureManager.swift
 //  Dongled
 //
 //  Created by Charles Sheppa on 5/5/24.
@@ -7,175 +7,219 @@
 
 import AVFoundation
 import UIKit
+/// Delegate to report UI state changes. ViewController only handles the UI swaps.
+protocol CaptureManagerDelegate: AnyObject {
+    func captureManager(_ manager: CaptureManager, didUpdate state: CaptureManager.State)
+}
 
-class CaptureManager {
-    
-    var captureSession: AVCaptureSession?
-    var previewLayer: AVCaptureVideoPreviewLayer?
-    var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
-   
-    let audioManager = AudioManager()
-    var viewController: ViewController?
-    
-    // Main Startup Method
+final class CaptureManager {
+    /// UI States
+    enum State {
+        case scanning, connecting, active
+    }
+
+    // MARK: - Properties
+
+    weak var delegate: CaptureManagerDelegate?
+
+    private let sessionQueue = DispatchQueue(label: "com.Dongled.captureSession")
+    private var captureSession: AVCaptureSession?
+    private var previewLayer: AVCaptureVideoPreviewLayer?
+    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+    private let audioManager = AudioManager()
+
+    // MARK: - Public Session Lifecycle
+
+    // Begins session setup after checking permissions and discovering device
     func setupCaptureSession() {
-        if captureSession == nil {
-            captureSession = AVCaptureSession()
-        }
-        // Find the external device
-        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
-        // Device Found
-        if let device = discoverySession.devices.first {
-            viewController?.showConnectingTextUI()
-            // Delay the rest of the code by 2 seconds to allow device to boot
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                guard let self = self else { return }
-                
-                self.launchSession(with: device)
-                
-                viewController?.showActiveUI()
-            }
-        } else { // Device not found, Show Idle UI
-            viewController?.showIdleUI()
-        }
-    }
-    
-    // MARK: Main Capture Setup
-    // Configure the session
-    func launchSession(with device: AVCaptureDevice) {
-        captureSession?.beginConfiguration()
-        setupDeviceInput(for: device)
-        audioManager.setupAudioSession()
-        audioManager.setupAudioEngine()
-        audioManager.configureAudio(forCaptureSession: self.captureSession!)
-        audioManager.startAudio()
-        captureSession?.commitConfiguration()
-        startSession()
-    }
-    // Add inputs to session
-    func setupDeviceInput(for device: AVCaptureDevice) {
-        do {
-            let input = try AVCaptureDeviceInput(device: device)
-            guard let session = captureSession else {
-                print("Session is nil")
-                return
-            }
-            if session.canAddInput(input) {
-                session.addInput(input)
-                print("Added input: \(session.inputs)")
-            }
-            
-            viewController?.noDeviceLabel.isHidden = true
-            
-            setupPreviewLayer(for: session)
-            
-        } catch {
-            print("Error setting up capture session input: \(error)")
-        }
-    }
-    // Create a previewLayer
-    func setupPreviewLayer(for session: AVCaptureSession) {
-        // Remove the old preview layer if it exists
-        previewLayer?.removeFromSuperlayer()
-        
-        previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        guard let previewLayer = previewLayer else {
-            print("Error setting up preview layer")
-            return
-        }
-        
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self, let viewController = self.viewController else { return }
-            
-            previewLayer.frame = viewController.view.bounds
-            previewLayer.videoGravity = .resizeAspect
-            
-            // Workaround for canvas flipping on mac
-            if #available(iOS 14.0, *), NSClassFromString("NSApplication") != nil {
-                print("Running as Designed for iPad on macOS")
-                previewLayer.setAffineTransform(CGAffineTransform(scaleX: 1, y: -1))
-            } else {
-                print("Assume Running as iOS")
-                previewLayer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))
-            }
+        checkVideoPermission { [weak self] granted in
+            guard let self = self else { return }
+            self.updateState(.scanning)
+            guard granted else { return }
 
-            viewController.view.layer.insertSublayer(previewLayer, at: 0)
-        }
-        
-        if let device = self.captureSession?.inputs.first as? AVCaptureDeviceInput {
-            self.rotationCoordinator = AVCaptureDevice.RotationCoordinator(device: device.device, previewLayer: previewLayer)
-            self.applyVideoRotationForPreview()
-        }
-    }
-    // Rotate and Mirror the previewLayer for Landscape
-    func applyVideoRotationForPreview() {
-        guard let previewLayerConnection = previewLayer?.connection, let rotationCoordinator = rotationCoordinator else {
-            return
-        }
-        
-        let rotationAngle = rotationCoordinator.videoRotationAngleForHorizonLevelPreview
-        if previewLayerConnection.isVideoRotationAngleSupported(rotationAngle) {
-            previewLayerConnection.videoRotationAngle = rotationAngle
+            self.discoverDevice { device in
+                guard let device = device else {
+                    print("No external video device found. Remaining idle.")
+                    self.updateState(.scanning)
+                    return
+                }
+                /// Wait for hardware to finish booting
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+                    self.configureSession(with: device)
+                }
+            }
         }
     }
-    // MARK: Helpers
-    // Cleanup when device is disconnected
+
+    // Stops and deallocates the current capture session
+    func teardownSession() {
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.captureSession?.stopRunning()
+            self.captureSession?.inputs.forEach { self.captureSession?.removeInput($0) }
+            self.captureSession = nil
+        }
+    }
+
+    // Handles teardown and cleanup when device is disconnected
     func deviceDisconnected(for device: AVCaptureDevice) {
-        if let viewController = self.viewController {
-            viewController.showScanningTextUI()
-        }
-        sessionStop()
-         // Remove input associated with disconnected device
-        if let session = captureSession {
-            for input in session.inputs {
-                if let deviceInput = input as? AVCaptureDeviceInput, deviceInput.device == device {
-                    session.removeInput(deviceInput)
-                }
-            }
-        }
-         
-        // Stop the audio player node and engine & disconnect audio input
-        audioManager.stopAudio(withCaptureSession: captureSession)
-        
-        viewController?.showIdleUI()
-        print("Session disconnect")
+        print("Device disconnected: \(device.localizedName) [modelID: \(device.modelID)]")
+        updateState(.scanning)
+        teardownSession()
+        audioManager.stopEnginePassThrough()
     }
-    // Reboot Session after a hotplug or unplug outside the app
-    func rebootSession(){
-        // Stop session if running
-        sessionStop()
-        
-        viewController?.showConnectingTextUI()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { // Wait for Hardware
-            if UIApplication.shared.applicationState == .active {
-                let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.external], mediaType: .video, position: .unspecified)
-                    
-                if let device = discoverySession.devices.first {
-                    self.launchSession(with: device)
-                    self.viewController?.showActiveUI()
-                    }
-                } else {
-                    self.viewController?.sessionBlocked = true
-                    print("App is not active. Preventing session start.")
+    // Stops video and audio when app enters background
+    func handleDidEnterBackground() {
+        sessionQueue.async { [weak self] in
+            self?.captureSession?.stopRunning()
+        }
+        audioManager.stopEnginePassThrough()
+    }
+
+    // Re-evaluates device state and reinitializes session when app returns to foreground
+    func handleWillEnterForeground() {
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+
+            guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else { return }
+
+            /// Always re-discover
+            let discovery = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [.external], mediaType: .video, position: .unspecified
+            )
+            /// No device, don't start
+            if discovery.devices.isEmpty {
+                print("No external device found. Staying in .scanning.")
+                DispatchQueue.main.async {
+                    self.updateState(.scanning)
+                }
+            /// Main startup begins here
+            } else {
+                print("Device Found!")
+                self.teardownSession()
+                DispatchQueue.main.async {
+                    self.setupCaptureSession()
                 }
             }
-    }
-    // Start or Resume a Capture Session
-    func startSession() {
-        guard let session = captureSession else {
-            print("Session is nil")
-            return
         }
-        DispatchQueue.global(qos: .userInitiated).async {
+    }
+
+    // Binds an AVCaptureVideoPreviewLayer to view and applies transforms
+    func attachPreview(to view: UIView) {
+        guard let session = captureSession else { return }
+        previewLayer?.removeFromSuperlayer()
+
+        let layer = AVCaptureVideoPreviewLayer(session: session)
+        previewLayer = layer
+        layer.frame = view.bounds
+        layer.videoGravity = .resizeAspect
+        view.layer.insertSublayer(layer, at: 0)
+        print("Starting Video Preview Layer.")
+
+        if let deviceInput = session.inputs.first as? AVCaptureDeviceInput {
+            rotationCoordinator = AVCaptureDevice.RotationCoordinator(
+                device: deviceInput.device,
+                previewLayer: layer
+            )
+        }
+
+        transformPreviewLayer()
+    }
+
+    // MARK: - Private Utilities
+
+    // Requests video capture permission if needed
+    private func checkVideoPermission(_ completion: @escaping (Bool) -> Void) {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            completion(true)
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async { completion(granted) }
+            }
+        default:
+            completion(false)
+        }
+    }
+
+    // Finds and returns the first available external video device
+    private func discoverDevice(completion: @escaping (AVCaptureDevice?) -> Void) {
+        let discovery = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.external], mediaType: .video, position: .unspecified
+        )
+        for device in discovery.devices {
+            print("Available device: \(device.localizedName) [modelID: \(device.modelID)]")
+            self.updateState(.connecting)
+        }
+        completion(discovery.devices.first)
+    }
+
+    // Initializes a new AVCaptureSession with the specified device input
+    private func configureSession(with device: AVCaptureDevice) {
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            let session = AVCaptureSession()
+            session.beginConfiguration()
+            do {
+                let input = try AVCaptureDeviceInput(device: device)
+                if session.canAddInput(input) {
+                    session.addInput(input)
+                    print("Added device input")
+                }
+            } catch {
+                print("Failed to add device input: \(error)")
+            }
+            session.commitConfiguration()
+
+            self.captureSession = session
+            self.startSession()
+            self.audioManager.startEngineInputPassThrough()
+            self.updateState(.active)
+        }
+    }
+
+    // Starts the capture session if not already running
+    private func startSession() {
+        sessionQueue.async { [weak self] in
+            guard let self = self,
+                  let session = self.captureSession,
+                  !session.isRunning,
+                  !session.inputs.isEmpty else { return }
             session.startRunning()
         }
     }
-    // Stop the Capture Session
-    func sessionStop() {
-        if let session = captureSession
-        {
-            session.stopRunning()
+
+    // Applies mirroring and rotation to the preview layer based on platform and orientation
+    private func transformPreviewLayer() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self,
+                  let layer = self.previewLayer,
+                  let connection = layer.connection else { return }
+
+            /// Mirroring
+            if #available(iOS 14.0, *), NSClassFromString("NSApplication") != nil {
+                print("Running in MacOS")
+                layer.setAffineTransform(CGAffineTransform(scaleX: 1, y: -1)) // Catalyst/macOS
+            } else {
+                print("Running in iPadOS")
+                layer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1)) // iOS
+            }
+
+            /// Rotation
+            if let coordinator = self.rotationCoordinator {
+                let angle = coordinator.videoRotationAngleForHorizonLevelPreview
+                if connection.isVideoRotationAngleSupported(angle) {
+                    connection.videoRotationAngle = angle
+                }
+            }
+        }
+    }
+
+    // Dispatches a UI state change to the delegate
+    private func updateState(_ state: State) {
+        DispatchQueue.main.async {
+            self.delegate?.captureManager(self, didUpdate: state)
         }
     }
 }

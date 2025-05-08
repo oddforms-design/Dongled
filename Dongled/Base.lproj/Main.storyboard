@@ -72,6 +72,7 @@
                         </constraints>
                     </view>
                     <connections>
+                        <outlet property="activityIndicator" destination="fR6-jV-KGD" id="fL0-d1-SeT"/>
                         <outlet property="coverView" destination="i4w-W6-hCF" id="sfW-tI-0vU"/>
                         <outlet property="noDeviceLabel" destination="XPu-3O-lS4" id="55A-16-MIp"/>
                     </connections>
