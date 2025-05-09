@@ -33,7 +33,6 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     }
 
     // MARK: - Lifecycle
-
     // Initial setup for UI handling
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -43,19 +42,16 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     }
 
     // MARK: - Notification Registration
-
     // Subscribes to device and app state notifications
     private func registerNotifications() {
         let center = NotificationCenter.default
         center.addObserver(self, selector: #selector(handleDeviceConnected), name: .AVCaptureDeviceWasConnected, object: nil)
         center.addObserver(self, selector: #selector(handleDeviceDisconnected), name: .AVCaptureDeviceWasDisconnected, object: nil)
         center.addObserver(self, selector: #selector(handleDidEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
-        center.addObserver(self, selector: #selector(handleWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
         center.addObserver(self, selector: #selector(handleAppDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
     }
     
     // MARK: - Notification Handlers
-    
     // We want to start a new capture queue anytime the app reloads, so we launch it here not in viewDidLoad
     @objc private func handleAppDidBecomeActive() {
         print("App Became Active")
@@ -67,14 +63,10 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
         captureManager.teardownSession()
     }
 
-    @objc private func handleWillEnterForeground() {
-        /// Nothing for now
-    }
-
     // Starts capture session if app active when device connects
     @objc private func handleDeviceConnected(notification: Notification) {
         guard let device = notification.object as? AVCaptureDevice else { return }
-
+        /// Make sure the device change is external to fix a strange internal mic detection issue
         guard device.deviceType == .external else {
             return
         }
@@ -85,7 +77,7 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     // Passes teardown event to capture manager
     @objc private func handleDeviceDisconnected(notification: Notification) {
         DispatchQueue.main.async {
-            // Now safe to call UIApplication.shared.applicationState
+            /// Now safe to call UIApplication.shared.applicationState, calling outside app will result in crash
             guard UIApplication.shared.applicationState == .active else { return }
             guard let device = notification.object as? AVCaptureDevice,
                   device.deviceType == .external else { return }
@@ -144,7 +136,6 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     }
 
     // MARK: - CaptureManagerDelegate
-
     // Receives capture state updates and attaches preview if active
     func captureManager(_ manager: CaptureManager, didUpdate state: CaptureManager.State) {
         switch state {
@@ -154,7 +145,10 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
             updateUI(for: .connecting)
         case .active:
             captureManager.attachPreview(to: self.view)
-            updateUI(for: .active)
+            /// Tiny delay to give the layer time to finish flipping over
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    self.updateUI(for: .active)
+                }
         }
     }
 

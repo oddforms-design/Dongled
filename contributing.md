@@ -30,9 +30,6 @@ I use github to host code, to track issues and feature requests, as well as acce
 ## No Guarantee of Life
 Dongled is a free, non-revenue generating app which costs actual money to keep running via App Store fees and the web domain, not to mention my time. Please be aware I reserve the right to stop distributing it on the AppStore and close down the project git at any time. I accept donations via github donate toward the project but still pay out-of-pocket to keep the app online. Unless otherwise notified, please also consider your work freely contributed. 
 
-## Dongled Name & Logo are Not Included in the MIT license
-The Dongled name and logo are not included under this license and are subject to separate trademark and branding restrictions. For any uses not permitted under the license, including the use of the name and logo, please contact me via the discussion page for permission.
-
 ## License
 When you submit code changes, your submissions are understood to be under the same [MIT License](https://github.com/oddforms-design/Dongled/blob/main/LICENSE) that covers the project.
 

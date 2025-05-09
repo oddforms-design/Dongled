@@ -41,16 +41,16 @@ final class CaptureManager {
             }
 
         case .notDetermined:
-                // First‐time camera prompt
+                /// First‐time camera prompt
                 AVCaptureDevice.requestAccess(for: .video) { grantedVideo in
                     DispatchQueue.main.async {
                         guard grantedVideo else {
-                            // User denied video → stay in scanning
+                            /// User denied video → stay in scanning
                             self.updateState(.scanning)
                             return
                         }
                         print("Got Video")
-                        // Video granted → now prompt mic
+                        /// Video granted → now prompt mic
                         AVCaptureDevice.requestAccess(for: .audio) { _ in
                             DispatchQueue.main.async {
                                 print("Got Audio")
@@ -61,11 +61,10 @@ final class CaptureManager {
                 }
 
         case .denied, .restricted:
-            // Permission denied → show scanning UI with disabled camera message
+            /// Permission denied → show scanning UI with disabled camera message
             updateState(.scanning)
 
         @unknown default:
-            // Future-proof fallback → show scanning UI
             updateState(.scanning)
         }
     }
@@ -77,24 +76,24 @@ final class CaptureManager {
             print("Warn: Killed a duplicate session")
             return
         }
-        // Discover external video devices
+        /// Discover external video devices
         let discovery = AVCaptureDevice.DiscoverySession(
             deviceTypes: [.external],
             mediaType: .video,
             position: .unspecified
         )
 
-        // No device → remain scanning
+        /// No device → remain scanning
         guard let device = discovery.devices.first else {
             print("No external video device found. Remaining idle.")
             DispatchQueue.main.async { self.updateState(.scanning) }
             return
         }
 
-        // Device found → update UI, wait for hardware to finish booting, then configure
+        /// Device found → update UI, wait for hardware to finish booting, then configure
         print("Device Found! Booting…")
         updateState(.connecting)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+        sessionQueue.asyncAfter(deadline: .now() + 2.2) {
             self.configureSession(with: device)
         }
     }
@@ -175,7 +174,7 @@ final class CaptureManager {
     private func requestMicrophonePermission() {
         let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
 
-        // If we've never asked, ask now. Otherwise just refresh UI.
+        /// If we've never asked, ask now. Otherwise just refresh UI.
         if micStatus == .notDetermined {
             AVCaptureDevice.requestAccess(for: .audio) { [weak self] _ in
                 DispatchQueue.main.async {
@@ -183,7 +182,7 @@ final class CaptureManager {
                 }
             }
         } else {
-            // Already determined (granted or denied) → refresh scanning UI immediately
+            /// Already determined (granted or denied) → refresh scanning UI immediately
             DispatchQueue.main.async { self.updateState(.scanning) }
         }
     }
