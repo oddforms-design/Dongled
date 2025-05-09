@@ -145,7 +145,7 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
                     self.noDeviceLabel.text = "Camera access disabled. Enable in Privacy Settings to Continue."
                     self.activityIndicator.isHidden = true
                 } else if micStatus == .authorized {
-                    self.noDeviceLabel.text = "Scanning for Hardware"
+                    self.noDeviceLabel.text = "Scanning For Hardware"
                     self.activityIndicator.isHidden = false
                 } else {
                     self.noDeviceLabel.text = "Scanning for Hardware: Silent Mode – Microphone access disabled."
