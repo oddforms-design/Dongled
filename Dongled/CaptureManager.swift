@@ -93,9 +93,20 @@ final class CaptureManager {
         /// Device found → update UI, wait for hardware to finish booting, then configure
         print("Device Found! Booting…")
         updateState(.connecting)
-        sessionQueue.asyncAfter(deadline: .now() + 2.2) {
-            self.configureSession(with: device)
-        }
+        self.sessionQueue.asyncAfter(deadline: .now() + 2.2) {
+                    let nowDevices = AVCaptureDevice.DiscoverySession(
+                        deviceTypes: [.external],
+                        mediaType: .video,
+                        position: .unspecified
+                    ).devices
+                    guard nowDevices.contains(where: { $0.uniqueID == device.uniqueID }) else {
+                        /// Device was unplugged during boot-up
+                        print("Device Removed. Aborting...")
+                        DispatchQueue.main.async { self.updateState(.scanning) }
+                        return
+                    }
+                    self.configureSession(with: device)
+                }
     }
     
     // Initializes a new AVCaptureSession and set device inputs
