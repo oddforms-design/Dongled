@@ -51,33 +51,47 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
         center.addObserver(self, selector: #selector(handleDeviceDisconnected), name: .AVCaptureDeviceWasDisconnected, object: nil)
         center.addObserver(self, selector: #selector(handleDidEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
         center.addObserver(self, selector: #selector(handleWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+        center.addObserver(self, selector: #selector(handleAppDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
     }
-
+    
     // MARK: - Notification Handlers
+    
+    // We want to start a new capture queue anytime the app reloads, so we launch it here not in viewDidLoad
+    @objc private func handleAppDidBecomeActive() {
+        print("App Became Active")
+        captureManager.authorizeCapture()
+    }
 
-    // Passes background event to capture manager
+    // Passes background event to stop capture manager queue
     @objc private func handleDidEnterBackground() {
-        captureManager.handleDidEnterBackground()
+        captureManager.teardownSession()
     }
 
-    // Passes foreground event to capture manager
     @objc private func handleWillEnterForeground() {
-        captureManager.handleWillEnterForeground()
+        /// Nothing for now
     }
 
-    // Starts capture session if app is already active when device connects
+    // Starts capture session if app active when device connects
     @objc private func handleDeviceConnected(notification: Notification) {
-        DispatchQueue.main.async {
-            guard UIApplication.shared.applicationState == .active else { return }
-            self.captureManager.setupCaptureSession()
+        guard let device = notification.object as? AVCaptureDevice else { return }
+
+        guard device.deviceType == .external else {
+            return
         }
+        print("Found New Device: \(device.localizedName) | id: \(device.uniqueID)")
+        self.captureManager.authorizeCapture()
     }
 
-    // Passes disconnect event to capture manager
+    // Passes teardown event to capture manager
     @objc private func handleDeviceDisconnected(notification: Notification) {
-        guard let device = notification.object as? AVCaptureDevice,
-              device.deviceType == .external else { return }
-        captureManager.deviceDisconnected(for: device)
+        DispatchQueue.main.async {
+            // Now safe to call UIApplication.shared.applicationState
+            guard UIApplication.shared.applicationState == .active else { return }
+            guard let device = notification.object as? AVCaptureDevice,
+                  device.deviceType == .external else { return }
+            print("Device disconnected: \(device.localizedName) [modelID: \(device.modelID)]")
+            self.captureManager.teardownSession()
+        }
     }
 
     // MARK: - UI State Management
@@ -139,14 +153,15 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
         case .connecting:
             updateUI(for: .connecting)
         case .active:
-            updateUI(for: .active)
             captureManager.attachPreview(to: self.view)
+            updateUI(for: .active)
         }
     }
 
     // MARK: - Cleanup
 
     deinit {
+        print("ViewController deinitialized")
         NotificationCenter.default.removeObserver(self)
     }
 }
