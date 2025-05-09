@@ -20,6 +20,7 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
 
     private var currentUIState: UIState = .scanning
     private let captureManager = CaptureManager()
+    private var trackedDeviceIDs = Set<String>()
 
     override var prefersHomeIndicatorAutoHidden: Bool { true }
     override var prefersStatusBarHidden: Bool { isStatusBarHidden }
@@ -55,7 +56,7 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     // We want to start a new capture queue anytime the app reloads, so we launch it here not in viewDidLoad
     @objc private func handleAppDidBecomeActive() {
         print("App Became Active")
-        captureManager.authorizeCapture()
+        captureManager.authorizeCapture(from: self)
     }
 
     // Passes background event to stop capture manager queue
@@ -65,24 +66,58 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
 
     // Starts capture session if app active when device connects
     @objc private func handleDeviceConnected(notification: Notification) {
-        guard let device = notification.object as? AVCaptureDevice else { return }
-        /// Make sure the device change is external to fix a strange internal mic detection issue
-        guard device.deviceType == .external else {
-            return
-        }
-        print("Found New Device: \(device.localizedName) | id: \(device.uniqueID)")
-        self.captureManager.authorizeCapture()
-    }
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
 
-    // Passes teardown event to capture manager
-    @objc private func handleDeviceDisconnected(notification: Notification) {
-        DispatchQueue.main.async {
-            /// Now safe to call UIApplication.shared.applicationState, calling outside app will result in crash
             guard UIApplication.shared.applicationState == .active else { return }
             guard let device = notification.object as? AVCaptureDevice,
                   device.deviceType == .external else { return }
-            print("Device disconnected: \(device.localizedName) [modelID: \(device.modelID)]")
-            self.captureManager.teardownSession()
+
+            if self.captureManager.isRunningOnMac() {
+                let id = device.uniqueID
+                guard !self.trackedDeviceIDs.contains(id) else {
+                    print("Duplicate connect notification ignored for device \(id)")
+                    return
+                }
+                print("Found New Device: \(device.localizedName) | id: \(id)")
+                self.trackedDeviceIDs.insert(id)
+            } else {
+                print("Found New Device (iPad mode): \(device.localizedName)")
+            }
+
+            self.captureManager.authorizeCapture(from: self)
+        }
+    }
+    
+    // Passes teardown event to capture manager
+    @objc private func handleDeviceDisconnected(notification: Notification) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+
+            guard UIApplication.shared.applicationState == .active else { return }
+            guard let device = notification.object as? AVCaptureDevice,
+                  device.deviceType == .external else { return }
+
+            if self.captureManager.isRunningOnMac() {
+                let id = device.uniqueID
+                guard self.trackedDeviceIDs.contains(id) else {
+                    print("Ignoring untracked device disconnect: \(id)")
+                    return
+                }
+
+                print("Device disconnected: \(device.localizedName) [modelID: \(device.modelID)]")
+                self.trackedDeviceIDs.remove(id)
+
+                if self.trackedDeviceIDs.isEmpty {
+                    self.captureManager.teardownSession()
+                } else {
+                    print("Other devices remain. Prompting user to reselect.")
+                    self.captureManager.setupCaptureSessionMacOS(from: self)
+                }
+            } else {
+                print("Device disconnected (iPad mode): \(device.localizedName)")
+                self.captureManager.teardownSession()
+            }
         }
     }
 

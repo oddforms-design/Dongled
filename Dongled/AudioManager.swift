@@ -1,18 +1,13 @@
-//
-//  AudioManager.swift
-//  Dongled
-//
-//  Created by Charles Sheppa on 5/5/24.
-//
-
 import AVFoundation
 
-final class AudioManager: NSObject {
+final class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
 
     // MARK: - Properties
 
     private let audioQueue = DispatchQueue(label: "com.Dongled.audioQueue", qos: .userInitiated)
-    private var audioEngine: AVAudioEngine?
+    private var audioCaptureSession: AVCaptureSession?
+    private var audioInput: AVCaptureDeviceInput?
+    private var audioOutput: AVCaptureAudioDataOutput?
     weak var viewController: ViewController?
 
     // MARK: - Audio Lifecycle
@@ -21,36 +16,46 @@ final class AudioManager: NSObject {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
 
-            let session = AVAudioSession.sharedInstance()
-            do {
-                try session.setCategory(
-                    .playAndRecord,
-                    mode: .default,
-                    options: [.mixWithOthers, .allowBluetoothA2DP]
-                )
-                try session.setActive(true)
-                try session.overrideOutputAudioPort(.none)
-                print("Starting AVAudio Pass-Through.")
-            } catch {
-                print("AVAudioSession setup failed: \(error)")
+            // Stop any existing session
+            self.stopEnginePassThrough()
+
+            // Discover USB audio devices
+            let audioDevices = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [.external],
+                mediaType: .audio,
+                position: .unspecified
+            ).devices
+
+            print("Discovered audio devices:")
+            for device in audioDevices {
+                print(" - \(device.localizedName) | \(device.uniqueID) | \(device.modelID)")
+            }
+            let devices = AVCaptureDevice.devices(for: .audio)
+            for device in devices {
+                print("Found audio device: \(device.localizedName), \(device.deviceType), \(device.uniqueID)")
+            }
+            guard let usbAudioDevice = audioDevices.first else {
+                print("❌ No USB audio device found. Blocking audio capture.")
                 return
             }
 
-            let engine = AVAudioEngine()
-            let inputNode = engine.inputNode
-            let format = inputNode.inputFormat(forBus: 0)
-
-            print("Configuring audio engine with input format:")
-            print(" - Channels: \(format.channelCount) @ \(format.sampleRate) Hz")
-
-            engine.connect(inputNode, to: engine.mainMixerNode, format: format)
-            self.audioEngine = engine
-
             do {
-                try engine.start()
-                print("AudioEngine started → Session Running")
+                let input = try AVCaptureDeviceInput(device: usbAudioDevice)
+                let output = AVCaptureAudioDataOutput()
+                output.setSampleBufferDelegate(self, queue: self.audioQueue)
+
+                let session = AVCaptureSession()
+                if session.canAddInput(input) { session.addInput(input) }
+                if session.canAddOutput(output) { session.addOutput(output) }
+
+                session.startRunning()
+                print("🎙️ Audio session started with: \(usbAudioDevice.localizedName)")
+
+                self.audioInput = input
+                self.audioOutput = output
+                self.audioCaptureSession = session
             } catch {
-                print("Failed to start AVAudioEngine: \(error)")
+                print("❌ Failed to set up audio session: \(error)")
             }
         }
     }
@@ -59,25 +64,30 @@ final class AudioManager: NSObject {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
 
-            if let engine = self.audioEngine {
-                engine.stop()
-                self.audioEngine = nil
-                print("AudioEngine stopped.")
-            }
-
-            do {
-                try AVAudioSession.sharedInstance().setActive(false)
-                print("AVAudioSession deactivated.")
-            } catch {
-                print("Failed to deactivate AVAudioSession: \(error)")
+            if let session = self.audioCaptureSession {
+                session.stopRunning()
+                self.audioInput = nil
+                self.audioOutput = nil
+                self.audioCaptureSession = nil
+                print("🛑 Audio session stopped.")
             }
         }
     }
 
     internal func resetEngineInputPassThrough() {
-        audioQueue.async { [weak self] in
-            self?.stopEnginePassThrough()
-            self?.startEngineInputPassThrough()
+        stopEnginePassThrough()
+        startEngineInputPassThrough()
+    }
+
+    // MARK: - AVCaptureAudioDataOutputSampleBufferDelegate
+
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        // If needed, forward raw audio buffers here.
+        // For now, just log format and silence
+        guard let formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer) else { return }
+        let streamDesc = CMAudioFormatDescriptionGetStreamBasicDescription(formatDesc)
+        if let s = streamDesc {
+            print("🎧 Captured audio buffer — \(s.pointee.mSampleRate) Hz, \(s.pointee.mChannelsPerFrame) ch")
         }
     }
 }
