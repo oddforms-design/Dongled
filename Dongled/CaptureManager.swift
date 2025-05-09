@@ -203,12 +203,6 @@ final class CaptureManager {
             return
         }
 
-        guard !uniqueDevices.isEmpty else {
-            print("No devices found.")
-            updateState(.scanning)
-            return
-        }
-
         let alert = UIAlertController(
             title: "Select Video Input",
             message: "Choose a video source for the stream.",

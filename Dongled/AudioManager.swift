@@ -1,13 +1,18 @@
+//
+//  AudioManager.swift
+//  Dongled
+//
+//  Created by Charles Sheppa on 5/5/24.
+//
+
 import AVFoundation
 
-final class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
+final class AudioManager: NSObject {
 
     // MARK: - Properties
 
     private let audioQueue = DispatchQueue(label: "com.Dongled.audioQueue", qos: .userInitiated)
-    private var audioCaptureSession: AVCaptureSession?
-    private var audioInput: AVCaptureDeviceInput?
-    private var audioOutput: AVCaptureAudioDataOutput?
+    private var audioEngine: AVAudioEngine?
     weak var viewController: ViewController?
 
     // MARK: - Audio Lifecycle
@@ -16,46 +21,57 @@ final class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate
         audioQueue.async { [weak self] in
             guard let self = self else { return }
 
-            // Stop any existing session
-            self.stopEnginePassThrough()
+            let session = AVAudioSession.sharedInstance()
 
-            // Discover USB audio devices
-            let audioDevices = AVCaptureDevice.DiscoverySession(
-                deviceTypes: [.external],
-                mediaType: .audio,
-                position: .unspecified
-            ).devices
-
-            print("Discovered audio devices:")
-            for device in audioDevices {
-                print(" - \(device.localizedName) | \(device.uniqueID) | \(device.modelID)")
-            }
-            let devices = AVCaptureDevice.devices(for: .audio)
-            for device in devices {
-                print("Found audio device: \(device.localizedName), \(device.deviceType), \(device.uniqueID)")
-            }
-            guard let usbAudioDevice = audioDevices.first else {
-                print("❌ No USB audio device found. Blocking audio capture.")
+            do {
+                try session.setCategory(
+                    .playAndRecord,
+                    mode: .default,
+                    options: [.mixWithOthers, .allowBluetoothA2DP]
+                )
+                try session.setActive(true)
+                try session.overrideOutputAudioPort(.none)
+                print("Starting AVAudio Pass-Through.")
+            } catch {
+                print("AVAudioSession setup failed: \(error)")
                 return
             }
 
+            /// Check for nil input
+            guard let availableInputs = session.availableInputs else {
+                print("No available audio inputs. Aborting audio engine start.")
+                return
+            }
+
+            /// USB devices only please
+            guard let usbInput = availableInputs.first(where: { $0.portType == .usbAudio }) else {
+                print("No USB audio input found. Blocking audio engine startup.")
+                return
+            }
+            /// Assign the preferred input to USB
             do {
-                let input = try AVCaptureDeviceInput(device: usbAudioDevice)
-                let output = AVCaptureAudioDataOutput()
-                output.setSampleBufferDelegate(self, queue: self.audioQueue)
-
-                let session = AVCaptureSession()
-                if session.canAddInput(input) { session.addInput(input) }
-                if session.canAddOutput(output) { session.addOutput(output) }
-
-                session.startRunning()
-                print("🎙️ Audio session started with: \(usbAudioDevice.localizedName)")
-
-                self.audioInput = input
-                self.audioOutput = output
-                self.audioCaptureSession = session
+                try session.setPreferredInput(usbInput)
+                print("Selected USB audio input: \(usbInput.portName) [type: \(usbInput.portType.rawValue)]")
             } catch {
-                print("❌ Failed to set up audio session: \(error)")
+                print("Failed to set preferred USB audio input: \(error)")
+                return
+            }
+
+            let engine = AVAudioEngine()
+            let inputNode = engine.inputNode
+            let format = inputNode.inputFormat(forBus: 0)
+
+            print("Configuring audio engine with input format:")
+            print(" - Channels: \(format.channelCount) @ \(format.sampleRate) Hz")
+
+            engine.connect(inputNode, to: engine.mainMixerNode, format: format)
+            self.audioEngine = engine
+
+            do {
+                try engine.start()
+                print("AudioEngine started → Session Running")
+            } catch {
+                print("Failed to start AVAudioEngine: \(error)")
             }
         }
     }
@@ -64,30 +80,25 @@ final class AudioManager: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate
         audioQueue.async { [weak self] in
             guard let self = self else { return }
 
-            if let session = self.audioCaptureSession {
-                session.stopRunning()
-                self.audioInput = nil
-                self.audioOutput = nil
-                self.audioCaptureSession = nil
-                print("🛑 Audio session stopped.")
+            if let engine = self.audioEngine {
+                engine.stop()
+                self.audioEngine = nil
+                print("AudioEngine stopped.")
+            }
+
+            do {
+                try AVAudioSession.sharedInstance().setActive(false)
+                print("AVAudioSession deactivated.")
+            } catch {
+                print("Failed to deactivate AVAudioSession: \(error)")
             }
         }
     }
 
     internal func resetEngineInputPassThrough() {
-        stopEnginePassThrough()
-        startEngineInputPassThrough()
-    }
-
-    // MARK: - AVCaptureAudioDataOutputSampleBufferDelegate
-
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        // If needed, forward raw audio buffers here.
-        // For now, just log format and silence
-        guard let formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer) else { return }
-        let streamDesc = CMAudioFormatDescriptionGetStreamBasicDescription(formatDesc)
-        if let s = streamDesc {
-            print("🎧 Captured audio buffer — \(s.pointee.mSampleRate) Hz, \(s.pointee.mChannelsPerFrame) ch")
+        audioQueue.async { [weak self] in
+            self?.stopEnginePassThrough()
+            self?.startEngineInputPassThrough()
         }
     }
 }
