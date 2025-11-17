@@ -56,6 +56,10 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     // We want to start a new capture queue anytime the app reloads, so we launch it here not in viewDidLoad
     @objc private func handleAppDidBecomeActive() {
         print("App Became Active")
+        guard captureManager.state == .scanning else {
+            print("Capture session already active or connecting. Skipping re-boot.")
+            return
+        }
         captureManager.authorizeCapture(from: self)
     }
 
@@ -68,8 +72,6 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     @objc private func handleDeviceConnected(notification: Notification) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-
-            guard UIApplication.shared.applicationState == .active else { return }
             guard let device = notification.object as? AVCaptureDevice,
                   device.deviceType == .external else { return }
 

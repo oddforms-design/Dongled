@@ -59,12 +59,19 @@ final class AudioManager: NSObject {
 
             let engine = AVAudioEngine()
             let inputNode = engine.inputNode
-            let format = inputNode.inputFormat(forBus: 0)
+            /// `outputFormat` contains the hardware sample-rate/channels and is required here.
+            let format = inputNode.outputFormat(forBus: 0)
+
+            guard format.channelCount > 0 else {
+                print("Invalid input format returned from AVAudioEngine. Skipping connection.")
+                return
+            }
 
             print("Configuring audio engine with input format:")
             print(" - Channels: \(format.channelCount) @ \(format.sampleRate) Hz")
 
             engine.connect(inputNode, to: engine.mainMixerNode, format: format)
+            engine.prepare()
             self.audioEngine = engine
 
             do {
