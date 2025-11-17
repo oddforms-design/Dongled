@@ -33,6 +33,12 @@ final class CaptureManager: NSObject {
     private var videoOutput: AVCaptureVideoDataOutput?
 
     private weak var presentingViewController: UIViewController?
+    var hasValidSession: Bool {
+        sessionQueue.sync {
+            guard let session = captureSession else { return false }
+            return session.isRunning && !session.inputs.isEmpty && !session.outputs.isEmpty
+        }
+    }
 
     // MARK: - Public Session Lifecycle
     // Start Here to always evaluate permissions before attempting anything
@@ -137,13 +143,11 @@ final class CaptureManager: NSObject {
             session.beginConfiguration()
             if session.canSetSessionPreset(.inputPriority) {
                 session.sessionPreset = .inputPriority
-                print("Session preset set to inputPriority to attempt to respect device timing.")
             }
             do {
                 let input = try AVCaptureDeviceInput(device: device)
                 if session.canAddInput(input) {
                     session.addInput(input)
-                    print("Added device input")
                 }
             } catch {
                 print("Failed to add device input: \(error)")
@@ -154,7 +158,6 @@ final class CaptureManager: NSObject {
             if session.canAddOutput(output) {
                 session.addOutput(output)
                 output.setSampleBufferDelegate(self, queue: videoOutputQueue)
-                print("Added video data output")
                 videoOutput = output
             } else {
                 session.commitConfiguration()
@@ -325,6 +328,7 @@ final class CaptureManager: NSObject {
 
     private func updateState(_ state: State) {
         DispatchQueue.main.async {
+            print("CaptureManager State -> \(state)")
             self.state = state
             self.delegate?.captureManager(self, didUpdate: state)
         }
