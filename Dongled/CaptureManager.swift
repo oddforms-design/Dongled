@@ -139,6 +139,11 @@ final class CaptureManager: NSObject {
     private func configureSession(with device: AVCaptureDevice) {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
+            guard self.isDeviceStillConnected(withID: device.uniqueID) else {
+                print("Device removed before configuration could start.")
+                DispatchQueue.main.async { self.updateState(.scanning) }
+                return
+            }
             let session = AVCaptureSession()
             session.beginConfiguration()
             if session.canSetSessionPreset(.inputPriority) {
@@ -299,6 +304,16 @@ final class CaptureManager: NSObject {
                   !session.isRunning,
                   !session.inputs.isEmpty,
                   !session.outputs.isEmpty else { return }
+            let connectedInputIDs = session.inputs.compactMap { ($0 as? AVCaptureDeviceInput)?.device.uniqueID }
+            guard connectedInputIDs.allSatisfy({ self.isDeviceStillConnected(withID: $0) }) else {
+                print("Detected missing capture input before starting. Returning to scanning.")
+                session.stopRunning()
+                session.inputs.forEach { session.removeInput($0) }
+                session.outputs.forEach { session.removeOutput($0) }
+                self.captureSession = nil
+                DispatchQueue.main.async { self.updateState(.scanning) }
+                return
+            }
             session.startRunning()
         }
     }
@@ -332,6 +347,15 @@ final class CaptureManager: NSObject {
             self.state = state
             self.delegate?.captureManager(self, didUpdate: state)
         }
+    }
+
+    private func isDeviceStillConnected(withID id: String) -> Bool {
+        let discovery = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.external],
+            mediaType: .video,
+            position: .unspecified
+        )
+        return discovery.devices.contains { $0.uniqueID == id }
     }
 }
 

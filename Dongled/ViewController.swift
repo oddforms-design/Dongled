@@ -50,8 +50,6 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
         center.addObserver(self, selector: #selector(handleDeviceConnected), name: .AVCaptureDeviceWasConnected, object: nil)
         center.addObserver(self, selector: #selector(handleDeviceDisconnected), name: .AVCaptureDeviceWasDisconnected, object: nil)
         center.addObserver(self, selector: #selector(handleDidEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
-        center.addObserver(self, selector: #selector(handleWillResignActive), name: UIApplication.willResignActiveNotification, object: nil)
-        center.addObserver(self, selector: #selector(handleWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
         center.addObserver(self, selector: #selector(handleAppDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
     }
     
@@ -112,7 +110,11 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     @objc private func handleDeviceDisconnected(notification: Notification) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            
+            let state = UIApplication.shared.applicationState
+            guard state != .background else {
+                print("Skipping device disconnect handling while app in background.")
+                return
+            }
             guard let device = notification.object as? AVCaptureDevice,
                   device.deviceType == .external else { return }
             
@@ -210,13 +212,5 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     deinit {
         print("ViewController deinitialized")
         NotificationCenter.default.removeObserver(self)
-    }
-    
-    @objc private func handleWillResignActive() {
-        print("Lifecycle: willResignActive (Control Center / interruption)")
-    }
-    
-    @objc private func handleWillEnterForeground() {
-        print("Lifecycle: willEnterForeground")
     }
 }
