@@ -29,7 +29,6 @@ final class CaptureManager: NSObject {
     private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
     private let audioManager = AudioManager()
 
-    private weak var presentingViewController: UIViewController?
     var hasValidSession: Bool {
         sessionQueue.sync {
             guard let session = captureSession else { return false }
@@ -40,7 +39,6 @@ final class CaptureManager: NSObject {
     // MARK: - Public Session Lifecycle
     // Start Here to always evaluate permissions before attempting anything
     func authorizeCapture(from viewController: UIViewController) {
-        self.presentingViewController = viewController
         let status = AVCaptureDevice.authorizationStatus(for: .video)
 
         switch status {
@@ -151,7 +149,6 @@ final class CaptureManager: NSObject {
 
             self.captureSession = session
             self.startSession()
-            self.updateState(.active)
             self.audioManager.startEngineInputPassThrough()
         }
     }
@@ -279,8 +276,28 @@ final class CaptureManager: NSObject {
                   let session = self.captureSession,
                   !session.isRunning,
                   !session.inputs.isEmpty else { return }
+            let connectedInputIDs = session.inputs.compactMap { ($0 as? AVCaptureDeviceInput)?.device.uniqueID }
+            guard connectedInputIDs.allSatisfy({ self.isDeviceStillConnected(withID: $0) }) else {
+                print("Graph Error. Returning to scanning.")
+                session.stopRunning()
+                session.inputs.forEach { session.removeInput($0) }
+                session.outputs.forEach { session.removeOutput($0) }
+                self.captureSession = nil
+                DispatchQueue.main.async { self.updateState(.scanning) }
+                return
+            }
             session.startRunning()
+            DispatchQueue.main.async { self.updateState(.active) }
         }
+    }
+
+    private func isDeviceStillConnected(withID id: String) -> Bool {
+        let discovery = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.external],
+            mediaType: .video,
+            position: .unspecified
+        )
+        return discovery.devices.contains { $0.uniqueID == id }
     }
 
     private func transformPreviewLayer() {

@@ -18,7 +18,6 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     
     // MARK: - Properties
     
-    private var currentUIState: UIState = .scanning
     private let captureManager = CaptureManager()
     private var trackedDeviceIDs = Set<String>()
     private var needsSessionRestart = false
@@ -150,7 +149,6 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     // Updates the UI for the given state
     func updateUI(for state: UIState) {
         DispatchQueue.main.async {
-            self.currentUIState = state
             switch state {
             case .scanning:
                 self.isStatusBarHidden = false

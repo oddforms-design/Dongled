@@ -13,7 +13,6 @@ final class AudioManager: NSObject {
 
     private let audioQueue = DispatchQueue(label: "com.Dongled.audioQueue", qos: .userInitiated)
     private var audioEngine: AVAudioEngine?
-    weak var viewController: ViewController?
 
     // MARK: - Audio Lifecycle
 
@@ -102,10 +101,4 @@ final class AudioManager: NSObject {
         }
     }
 
-    internal func resetEngineInputPassThrough() {
-        audioQueue.async { [weak self] in
-            self?.stopEnginePassThrough()
-            self?.startEngineInputPassThrough()
-        }
-    }
 }
