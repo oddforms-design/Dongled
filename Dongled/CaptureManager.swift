@@ -220,8 +220,8 @@ final class CaptureManager: NSObject {
         let presentPicker: () -> Void = { [weak self, weak viewController] in
             guard let self = self, let viewController = viewController else { return }
             let alert = UIAlertController(
-                title: "Select Video Input",
-                message: "Choose a video source for the stream.",
+                title: NSLocalizedString("picker.title", comment: "Title for the video input picker on macOS."),
+                message: NSLocalizedString("picker.message", comment: "Message shown in the video input picker on macOS."),
                 preferredStyle: .actionSheet
             )
 
@@ -247,7 +247,7 @@ final class CaptureManager: NSObject {
                 alert.addAction(action)
             }
 
-            let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+            let cancelAction = UIAlertAction(title: NSLocalizedString("picker.cancel", comment: "Cancel action for the video input picker."), style: .cancel) { [weak self] _ in
                 self?.currentDevicePicker = nil
             }
             alert.addAction(cancelAction)

@@ -1,0 +1,7 @@
+"status.camera.disabled" = "El acceso a la cámara está desactivado. Actívalo en los ajustes de privacidad para continuar.";
+"status.scanning.hardware" = "Buscando dispositivo";
+"status.scanning.silent" = "Buscando dispositivo: modo silencioso — acceso al micrófono desactivado.";
+"status.connecting" = "Conectando con el dispositivo";
+"picker.title" = "Selecciona la entrada de vídeo";
+"picker.message" = "Elige una fuente de vídeo para la transmisión.";
+"picker.cancel" = "Cancelar";

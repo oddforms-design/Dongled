@@ -1,0 +1,7 @@
+"status.camera.disabled" = "Accès à la caméra désactivé. Activez-le dans les réglages de confidentialité pour continuer.";
+"status.scanning.hardware" = "Recherche de périphérique";
+"status.scanning.silent" = "Recherche de périphérique : mode silencieux — accès au microphone désactivé.";
+"status.connecting" = "Connexion à l’appareil en cours";
+"picker.title" = "Sélectionner une entrée vidéo";
+"picker.message" = "Choisissez une source vidéo pour la diffusion.";
+"picker.cancel" = "Annuler";

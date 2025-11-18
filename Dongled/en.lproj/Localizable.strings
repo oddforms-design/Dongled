@@ -1,0 +1,7 @@
+"status.camera.disabled" = "Camera access disabled. Enable in Privacy Settings to Continue.";
+"status.scanning.hardware" = "Scanning For Hardware";
+"status.scanning.silent" = "Scanning for Hardware: Silent Mode – Microphone access disabled.";
+"status.connecting" = "Connecting to Device";
+"picker.title" = "Select Video Input";
+"picker.message" = "Choose a video source for the stream.";
+"picker.cancel" = "Cancel";

@@ -1,0 +1,7 @@
+"status.camera.disabled" = "Der Kamerazugriff ist deaktiviert. Aktivieren Sie ihn in den Datenschutzeinstellungen, um fortzufahren.";
+"status.scanning.hardware" = "Gerät wird gesucht";
+"status.scanning.silent" = "Gerät wird gesucht: Stiller Modus – Mikrofonzugriff deaktiviert.";
+"status.connecting" = "Verbindung mit dem Gerät wird hergestellt";
+"picker.title" = "Videoeingang auswählen";
+"picker.message" = "Wählen Sie eine Videoquelle für den Stream.";
+"picker.cancel" = "Abbrechen";

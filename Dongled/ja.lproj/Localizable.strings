@@ -1,0 +1,7 @@
+"status.camera.disabled" = "カメラへのアクセスが無効です。続行するには、プライバシー設定で有効にしてください。";
+"status.scanning.hardware" = "デバイスを検索中";
+"status.scanning.silent" = "デバイスを検索中：サイレントモード（マイクアクセス無効）";
+"status.connecting" = "デバイスに接続中";
+"picker.title" = "ビデオ入力を選択";
+"picker.message" = "ストリームに使用するビデオソースを選択してください。";
+"picker.cancel" = "キャンセル";

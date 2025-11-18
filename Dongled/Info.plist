@@ -8,6 +8,18 @@
 	<string>Required for external audio input monitoring</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Required for external video input monitoring</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>de</string>
+		<string>es</string>
+		<string>fr</string>
+		<string>hu</string>
+		<string>ja</string>
+		<string>th</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

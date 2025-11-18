@@ -10,6 +10,13 @@ import AVFoundation
 
 final class ViewController: UIViewController, CaptureManagerDelegate {
     
+    private enum StatusText {
+        static let cameraDisabled = NSLocalizedString("status.camera.disabled", comment: "Message shown when camera permission is denied.")
+        static let scanningHardware = NSLocalizedString("status.scanning.hardware", comment: "Status while searching for capture hardware.")
+        static let scanningSilent = NSLocalizedString("status.scanning.silent", comment: "Status while searching when microphone permission is denied.")
+        static let connecting = NSLocalizedString("status.connecting", comment: "Status text while connecting to the selected device.")
+    }
+    
     // MARK: - IBOutlets
     
     @IBOutlet weak var noDeviceLabel: UILabel!
@@ -160,13 +167,13 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
                 let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
                 
                 if camStatus != .authorized {
-                    self.noDeviceLabel.text = "Camera access disabled. Enable in Privacy Settings to Continue."
+                    self.noDeviceLabel.text = StatusText.cameraDisabled
                     self.activityIndicator.isHidden = true
                 } else if micStatus == .authorized {
-                    self.noDeviceLabel.text = "Scanning For Hardware"
+                    self.noDeviceLabel.text = StatusText.scanningHardware
                     self.activityIndicator.isHidden = false
                 } else {
-                    self.noDeviceLabel.text = "Scanning for Hardware: Silent Mode – Microphone access disabled."
+                    self.noDeviceLabel.text = StatusText.scanningSilent
                     self.activityIndicator.isHidden = false
                 }
                 
@@ -175,7 +182,7 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
                 UIApplication.shared.isIdleTimerDisabled = false
                 self.coverView.isHidden = false
                 self.noDeviceLabel.isHidden = false
-                self.noDeviceLabel.text = "Connecting to Device"
+                self.noDeviceLabel.text = StatusText.connecting
                 self.activityIndicator.isHidden = false
                 
             case .active:

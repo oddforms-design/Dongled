@@ -7,29 +7,52 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3B34E4722ECCD51A00F4BA68 /* LaunchIconV138.png in Resources */ = {isa = PBXBuildFile; fileRef = 3B34E4712ECCD51A00F4BA68 /* LaunchIconV138.png */; };
+		3B34E4772ECCDB9D00F4BA68 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3B34E4752ECCDB9D00F4BA68 /* Localizable.strings */; };
 		3B3EEC9D2BE7EE6B00453852 /* CaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B3EEC9C2BE7EE6B00453852 /* CaptureManager.swift */; };
 		3B46D2D12AA8E82C00272E45 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B46D2D02AA8E82C00272E45 /* AppDelegate.swift */; };
 		3B46D2D32AA8E82C00272E45 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B46D2D22AA8E82C00272E45 /* SceneDelegate.swift */; };
 		3B46D2D52AA8E82C00272E45 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B46D2D42AA8E82C00272E45 /* ViewController.swift */; };
-		3B46D2D82AA8E82C00272E45 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3B46D2D62AA8E82C00272E45 /* Main.storyboard */; };
 		3B46D2DA2AA8E82D00272E45 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3B46D2D92AA8E82D00272E45 /* Assets.xcassets */; };
-		3B46D2DD2AA8E82D00272E45 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3B46D2DB2AA8E82D00272E45 /* LaunchScreen.storyboard */; };
-		3B829FE22C64FF3300FED8FB /* LaunchIconV138.png in Resources */ = {isa = PBXBuildFile; fileRef = 3B829FE12C64FF3300FED8FB /* LaunchIconV138.png */; };
+		3B7123462ECCC21300FD691F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3B7123442ECCC21300FD691F /* Main.storyboard */; };
+		3B7F55732ECCC505004EA6D3 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3B7F55622ECCC505004EA6D3 /* LaunchScreen.storyboard */; };
 		3BC6332E2BE7D60E001E2FCC /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BC6332D2BE7D60E001E2FCC /* AudioManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		3B34E4602ECCD31700F4BA68 /* Dongled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Dongled.app; path = "/Users/teenyhouse/Documents/Archive/2023/Dongled/build/Debug-iphoneos/Dongled.app"; sourceTree = "<absolute>"; };
+		3B34E4712ECCD51A00F4BA68 /* LaunchIconV138.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LaunchIconV138.png; sourceTree = "<group>"; };
+		3B34E4762ECCDB9D00F4BA68 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Base; path = Base.lproj/Localizable.strings; sourceTree = "<group>"; };
+		3B34E4782ECCDBDC00F4BA68 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		3B34E4792ECCDBEC00F4BA68 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
+		3B34E47A2ECCDBEE00F4BA68 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
+		3B34E47B2ECCDBF100F4BA68 /* hu */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = hu; path = hu.lproj/Localizable.strings; sourceTree = "<group>"; };
+		3B34E47C2ECCDBF300F4BA68 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
+		3B34E47D2ECCDBF500F4BA68 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
+		3B34E47E2ECCDBF700F4BA68 /* th */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = th; path = th.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3B3EEC9C2BE7EE6B00453852 /* CaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureManager.swift; sourceTree = "<group>"; };
 		3B3EECA02BE814A800453852 /* Dongled.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Dongled.entitlements; sourceTree = "<group>"; };
-		3B46D2CD2AA8E82C00272E45 /* Dongled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dongled.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B46D2D02AA8E82C00272E45 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		3B46D2D22AA8E82C00272E45 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		3B46D2D42AA8E82C00272E45 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
-		3B46D2D72AA8E82C00272E45 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		3B46D2D92AA8E82D00272E45 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		3B46D2DC2AA8E82D00272E45 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		3B46D2DE2AA8E82D00272E45 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		3B829FE12C64FF3300FED8FB /* LaunchIconV138.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LaunchIconV138.png; sourceTree = "<group>"; };
+		3B7F55872ECCC7FA004EA6D3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		3B7F55882ECCC7FA004EA6D3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		3B7F55942ECCC9D4004EA6D3 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
+		3B7F55952ECCC9E0004EA6D3 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Main.strings; sourceTree = "<group>"; };
+		3B7F55962ECCC9E6004EA6D3 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Main.strings; sourceTree = "<group>"; };
+		3B7F559A2ECCCC53004EA6D3 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Main.strings; sourceTree = "<group>"; };
+		3B7F559C2ECCCC59004EA6D3 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Main.strings; sourceTree = "<group>"; };
+		3B7F559E2ECCCC5D004EA6D3 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Main.strings; sourceTree = "<group>"; };
+		3B7F55A02ECCCC64004EA6D3 /* th */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = th; path = th.lproj/Main.strings; sourceTree = "<group>"; };
+		3B7F55A22ECCCC6A004EA6D3 /* hu */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = hu; path = hu.lproj/Main.strings; sourceTree = "<group>"; };
+		3BAF36002ECCD01B00A08435 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
+		3BAF36022ECCD03F00A08435 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
+		3BAF36042ECCD04100A08435 /* hu */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = hu; path = hu.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
+		3BAF36062ECCD04200A08435 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
+		3BAF36082ECCD04200A08435 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
+		3BAF360A2ECCD04300A08435 /* th */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = th; path = th.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
 		3BC6332D2BE7D60E001E2FCC /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -48,16 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				3B46D2CF2AA8E82C00272E45 /* Dongled */,
-				3B46D2CE2AA8E82C00272E45 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		3B46D2CE2AA8E82C00272E45 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				3B46D2CD2AA8E82C00272E45 /* Dongled.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 		3B46D2CF2AA8E82C00272E45 /* Dongled */ = {
@@ -69,11 +83,12 @@
 				3B46D2D42AA8E82C00272E45 /* ViewController.swift */,
 				3B3EEC9C2BE7EE6B00453852 /* CaptureManager.swift */,
 				3BC6332D2BE7D60E001E2FCC /* AudioManager.swift */,
-				3B46D2D62AA8E82C00272E45 /* Main.storyboard */,
 				3B46D2D92AA8E82D00272E45 /* Assets.xcassets */,
-				3B46D2DB2AA8E82D00272E45 /* LaunchScreen.storyboard */,
 				3B46D2DE2AA8E82D00272E45 /* Info.plist */,
-				3B829FE12C64FF3300FED8FB /* LaunchIconV138.png */,
+				3B7F55622ECCC505004EA6D3 /* LaunchScreen.storyboard */,
+				3B7123442ECCC21300FD691F /* Main.storyboard */,
+				3B34E4712ECCD51A00F4BA68 /* LaunchIconV138.png */,
+				3B34E4752ECCDB9D00F4BA68 /* Localizable.strings */,
 			);
 			path = Dongled;
 			sourceTree = "<group>";
@@ -95,7 +110,7 @@
 			);
 			name = Dongled;
 			productName = Dongle;
-			productReference = 3B46D2CD2AA8E82C00272E45 /* Dongled.app */;
+			productReference = 3B34E4602ECCD31700F4BA68 /* Dongled.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -120,9 +135,15 @@
 			knownRegions = (
 				en,
 				Base,
+				fr,
+				ja,
+				es,
+				de,
+				th,
+				hu,
 			);
 			mainGroup = 3B46D2C42AA8E82C00272E45;
-			productRefGroup = 3B46D2CE2AA8E82C00272E45 /* Products */;
+			productRefGroup = 3B46D2C42AA8E82C00272E45;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -136,10 +157,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3B46D2DD2AA8E82D00272E45 /* LaunchScreen.storyboard in Resources */,
 				3B46D2DA2AA8E82D00272E45 /* Assets.xcassets in Resources */,
-				3B829FE22C64FF3300FED8FB /* LaunchIconV138.png in Resources */,
-				3B46D2D82AA8E82C00272E45 /* Main.storyboard in Resources */,
+				3B34E4772ECCDB9D00F4BA68 /* Localizable.strings in Resources */,
+				3B7123462ECCC21300FD691F /* Main.storyboard in Resources */,
+				3B34E4722ECCD51A00F4BA68 /* LaunchIconV138.png in Resources */,
+				3B7F55732ECCC505004EA6D3 /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -161,18 +183,47 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
-		3B46D2D62AA8E82C00272E45 /* Main.storyboard */ = {
+		3B34E4752ECCDB9D00F4BA68 /* Localizable.strings */ = {
 			isa = PBXVariantGroup;
 			children = (
-				3B46D2D72AA8E82C00272E45 /* Base */,
+				3B34E4762ECCDB9D00F4BA68 /* Base */,
+				3B34E4782ECCDBDC00F4BA68 /* en */,
+				3B34E4792ECCDBEC00F4BA68 /* fr */,
+				3B34E47A2ECCDBEE00F4BA68 /* de */,
+				3B34E47B2ECCDBF100F4BA68 /* hu */,
+				3B34E47C2ECCDBF300F4BA68 /* ja */,
+				3B34E47D2ECCDBF500F4BA68 /* es */,
+				3B34E47E2ECCDBF700F4BA68 /* th */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		3B7123442ECCC21300FD691F /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				3B7F55882ECCC7FA004EA6D3 /* Base */,
+				3B7F55952ECCC9E0004EA6D3 /* fr */,
+				3B7F55962ECCC9E6004EA6D3 /* en */,
+				3B7F559A2ECCCC53004EA6D3 /* ja */,
+				3B7F559C2ECCCC59004EA6D3 /* es */,
+				3B7F559E2ECCCC5D004EA6D3 /* de */,
+				3B7F55A02ECCCC64004EA6D3 /* th */,
+				3B7F55A22ECCCC6A004EA6D3 /* hu */,
 			);
 			name = Main.storyboard;
 			sourceTree = "<group>";
 		};
-		3B46D2DB2AA8E82D00272E45 /* LaunchScreen.storyboard */ = {
+		3B7F55622ECCC505004EA6D3 /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				3B46D2DC2AA8E82D00272E45 /* Base */,
+				3B7F55872ECCC7FA004EA6D3 /* Base */,
+				3B7F55942ECCC9D4004EA6D3 /* en */,
+				3BAF36002ECCD01B00A08435 /* fr */,
+				3BAF36022ECCD03F00A08435 /* de */,
+				3BAF36042ECCD04100A08435 /* hu */,
+				3BAF36062ECCD04200A08435 /* ja */,
+				3BAF36082ECCD04200A08435 /* es */,
+				3BAF360A2ECCD04300A08435 /* th */,
 			);
 			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
@@ -185,6 +236,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -250,6 +302,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";

@@ -1,0 +1,7 @@
+"status.camera.disabled" = "A kamera-hozzáférés le van tiltva. Engedélyezd az adatvédelmi beállításokban a folytatáshoz.";
+"status.scanning.hardware" = "Eszköz keresése";
+"status.scanning.silent" = "Eszköz keresése: csendes mód – a mikrofon hozzáférése le van tiltva.";
+"status.connecting" = "Csatlakozás az eszközhöz folyamatban";
+"picker.title" = "Videobemenet kiválasztása";
+"picker.message" = "Válassz videóforrást a közvetítéshez.";
+"picker.cancel" = "Mégse";
