@@ -6,7 +6,6 @@
 //
 
 import AVFoundation
-import CoreMedia
 import UIKit
 
 // Delegate to report UI state changes. ViewController only handles the UI swaps.
@@ -29,14 +28,12 @@ final class CaptureManager: NSObject {
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
     private let audioManager = AudioManager()
-    private let videoOutputQueue = DispatchQueue(label: "com.Dongled.videoOutput")
-    private var videoOutput: AVCaptureVideoDataOutput?
 
     private weak var presentingViewController: UIViewController?
     var hasValidSession: Bool {
         sessionQueue.sync {
             guard let session = captureSession else { return false }
-            return session.isRunning && !session.inputs.isEmpty && !session.outputs.isEmpty
+            return session.isRunning && !session.inputs.isEmpty
         }
     }
 
@@ -139,36 +136,16 @@ final class CaptureManager: NSObject {
     private func configureSession(with device: AVCaptureDevice) {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
-            guard self.isDeviceStillConnected(withID: device.uniqueID) else {
-                print("Device removed before configuration could start.")
-                DispatchQueue.main.async { self.updateState(.scanning) }
-                return
-            }
             let session = AVCaptureSession()
             session.beginConfiguration()
-            if session.canSetSessionPreset(.inputPriority) {
-                session.sessionPreset = .inputPriority
-            }
             do {
                 let input = try AVCaptureDeviceInput(device: device)
                 if session.canAddInput(input) {
                     session.addInput(input)
+                    print("Added device input")
                 }
             } catch {
                 print("Failed to add device input: \(error)")
-            }
-
-            let output = AVCaptureVideoDataOutput()
-            output.alwaysDiscardsLateVideoFrames = true
-            if session.canAddOutput(output) {
-                session.addOutput(output)
-                output.setSampleBufferDelegate(self, queue: videoOutputQueue)
-                videoOutput = output
-            } else {
-                session.commitConfiguration()
-                print("Failed to add video output. Aborting session start.")
-                DispatchQueue.main.async { self.updateState(.scanning) }
-                return
             }
             session.commitConfiguration()
 
@@ -289,7 +266,6 @@ final class CaptureManager: NSObject {
             self.captureSession?.inputs.forEach { self.captureSession?.removeInput($0) }
             self.captureSession?.outputs.forEach { self.captureSession?.removeOutput($0) }
             self.captureSession = nil
-            self.videoOutput = nil
         }
         audioManager.stopEnginePassThrough()
         updateState(.scanning)
@@ -302,18 +278,7 @@ final class CaptureManager: NSObject {
             guard let self = self,
                   let session = self.captureSession,
                   !session.isRunning,
-                  !session.inputs.isEmpty,
-                  !session.outputs.isEmpty else { return }
-            let connectedInputIDs = session.inputs.compactMap { ($0 as? AVCaptureDeviceInput)?.device.uniqueID }
-            guard connectedInputIDs.allSatisfy({ self.isDeviceStillConnected(withID: $0) }) else {
-                print("Detected missing capture input before starting. Returning to scanning.")
-                session.stopRunning()
-                session.inputs.forEach { session.removeInput($0) }
-                session.outputs.forEach { session.removeOutput($0) }
-                self.captureSession = nil
-                DispatchQueue.main.async { self.updateState(.scanning) }
-                return
-            }
+                  !session.inputs.isEmpty else { return }
             session.startRunning()
         }
     }
@@ -343,22 +308,8 @@ final class CaptureManager: NSObject {
 
     private func updateState(_ state: State) {
         DispatchQueue.main.async {
-            print("CaptureManager State -> \(state)")
             self.state = state
             self.delegate?.captureManager(self, didUpdate: state)
         }
     }
-
-    private func isDeviceStillConnected(withID id: String) -> Bool {
-        let discovery = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.external],
-            mediaType: .video,
-            position: .unspecified
-        )
-        return discovery.devices.contains { $0.uniqueID == id }
-    }
-}
-
-extension CaptureManager: AVCaptureVideoDataOutputSampleBufferDelegate {
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {}
 }
