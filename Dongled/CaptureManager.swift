@@ -28,6 +28,8 @@ final class CaptureManager: NSObject {
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
     private let audioManager = AudioManager()
+    private weak var currentDevicePicker: UIAlertController?
+    private var lastPresentedDeviceIdentifiers = Set<String>()
 
     var hasValidSession: Bool {
         sessionQueue.sync {
@@ -199,55 +201,80 @@ final class CaptureManager: NSObject {
 
         let uniqueDevices = Dictionary(grouping: allDevices, by: \.modelID).compactMap { $0.value.first }
 
+        let currentIdentifiers = Set(uniqueDevices.map { $0.uniqueID })
+        let deviceListChanged = currentIdentifiers != lastPresentedDeviceIdentifiers
+        lastPresentedDeviceIdentifiers = currentIdentifiers
+
         print("Devices found: \(uniqueDevices.map { $0.localizedName })")
 
         guard !uniqueDevices.isEmpty else {
             print("No devices found.")
+            if let picker = currentDevicePicker, picker.presentingViewController != nil {
+                picker.dismiss(animated: true)
+                currentDevicePicker = nil
+            }
             updateState(.scanning)
             return
         }
 
-        let alert = UIAlertController(
-            title: "Select Video Input",
-            message: "Choose a video source for the stream.",
-            preferredStyle: .actionSheet
-        )
-
-        for uniqueDevice in uniqueDevices {
-            let action = UIAlertAction(title: uniqueDevice.localizedName, style: .default) { [weak self] _ in
-                print("Device Selected! Booting…")
-                self?.updateState(.connecting)
-                self?.sessionQueue.asyncAfter(deadline: .now() + 2.2) {
-                    let nowDevices = AVCaptureDevice.DiscoverySession(
-                        deviceTypes: [.external],
-                        mediaType: .video,
-                        position: .unspecified
-                    ).devices
-                    guard nowDevices.contains(where: { $0.uniqueID == uniqueDevice.uniqueID }) else {
-                        print("Device Removed. Aborting...")
-                        DispatchQueue.main.async { self?.updateState(.scanning) }
-                        return
-                    }
-                    self?.configureSession(with: uniqueDevice)
-                }
-            }
-            alert.addAction(action)
-        }
-
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-
-        if let popover = alert.popoverPresentationController {
-            popover.sourceView = viewController.view
-            popover.sourceRect = CGRect(
-                x: viewController.view.bounds.midX,
-                y: viewController.view.bounds.midY,
-                width: 0,
-                height: 0
+        let presentPicker: () -> Void = { [weak self, weak viewController] in
+            guard let self = self, let viewController = viewController else { return }
+            let alert = UIAlertController(
+                title: "Select Video Input",
+                message: "Choose a video source for the stream.",
+                preferredStyle: .actionSheet
             )
-            popover.permittedArrowDirections = []
+
+            for uniqueDevice in uniqueDevices {
+                let action = UIAlertAction(title: uniqueDevice.localizedName, style: .default) { [weak self] _ in
+                    print("Device Selected! Booting…")
+                    self?.currentDevicePicker = nil
+                    self?.updateState(.connecting)
+                    self?.sessionQueue.asyncAfter(deadline: .now() + 2.2) {
+                        let nowDevices = AVCaptureDevice.DiscoverySession(
+                            deviceTypes: [.external],
+                            mediaType: .video,
+                            position: .unspecified
+                        ).devices
+                        guard nowDevices.contains(where: { $0.uniqueID == uniqueDevice.uniqueID }) else {
+                            print("Device Removed. Aborting...")
+                            DispatchQueue.main.async { self?.updateState(.scanning) }
+                            return
+                        }
+                        self?.configureSession(with: uniqueDevice)
+                    }
+                }
+                alert.addAction(action)
+            }
+
+            let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+                self?.currentDevicePicker = nil
+            }
+            alert.addAction(cancelAction)
+
+            if let popover = alert.popoverPresentationController {
+                popover.sourceView = viewController.view
+                popover.sourceRect = CGRect(
+                    x: viewController.view.bounds.midX,
+                    y: viewController.view.bounds.midY,
+                    width: 0,
+                    height: 0
+                )
+                popover.permittedArrowDirections = []
+            }
+
+            self.currentDevicePicker = alert
+            viewController.present(alert, animated: true)
         }
 
-        viewController.present(alert, animated: true)
+        if let picker = currentDevicePicker, picker.presentingViewController != nil {
+            guard deviceListChanged else { return }
+            picker.dismiss(animated: false) {
+                presentPicker()
+            }
+        } else {
+            presentPicker()
+        }
     }
 
     func isRunningOnMac() -> Bool {

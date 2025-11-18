@@ -131,8 +131,8 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
                     self.captureManager.teardownSession()
                 } else {
                     print("Other devices remain. Prompting user to reselect.")
-                    self.captureManager.setupCaptureSessionMacOS(from: self)
                 }
+                self.captureManager.setupCaptureSessionMacOS(from: self)
             } else {
                 print("Device disconnected (iPad mode): \(device.localizedName)")
                 self.captureManager.teardownSession()
