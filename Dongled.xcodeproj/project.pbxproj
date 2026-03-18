@@ -20,7 +20,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		3B34E4602ECCD31700F4BA68 /* Dongled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Dongled.app; path = "/Users/teenyhouse/Documents/Archive/2023/Dongled/build/Debug-iphoneos/Dongled.app"; sourceTree = "<absolute>"; };
 		3B34E4712ECCD51A00F4BA68 /* LaunchIconV138.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LaunchIconV138.png; sourceTree = "<group>"; };
 		3B34E4762ECCDB9D00F4BA68 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Base; path = Base.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3B34E4782ECCDBDC00F4BA68 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -54,6 +53,10 @@
 		3BAF36082ECCD04200A08435 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
 		3BAF360A2ECCD04300A08435 /* th */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = th; path = th.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
 		3BC6332D2BE7D60E001E2FCC /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
+		3BE14B492F6AB4740078F341 /* Dongled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dongled.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		43F49A522FB9B94A00A1B001 /* ar */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ar; path = ar.lproj/Localizable.strings; sourceTree = "<group>"; };
+		43F49A532FB9B94A00A1B001 /* ar */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ar; path = ar.lproj/Main.strings; sourceTree = "<group>"; };
+		43F49A542FB9B94A00A1B001 /* ar */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ar; path = ar.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +74,7 @@
 			isa = PBXGroup;
 			children = (
 				3B46D2CF2AA8E82C00272E45 /* Dongled */,
+				3BE14B492F6AB4740078F341 /* Dongled.app */,
 			);
 			sourceTree = "<group>";
 		};
@@ -110,7 +114,7 @@
 			);
 			name = Dongled;
 			productName = Dongle;
-			productReference = 3B34E4602ECCD31700F4BA68 /* Dongled.app */;
+			productReference = 3BE14B492F6AB4740078F341 /* Dongled.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -139,6 +143,7 @@
 				ja,
 				es,
 				de,
+				ar,
 				th,
 				hu,
 			);
@@ -194,6 +199,7 @@
 				3B34E47C2ECCDBF300F4BA68 /* ja */,
 				3B34E47D2ECCDBF500F4BA68 /* es */,
 				3B34E47E2ECCDBF700F4BA68 /* th */,
+				43F49A522FB9B94A00A1B001 /* ar */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";
@@ -209,6 +215,7 @@
 				3B7F559E2ECCCC5D004EA6D3 /* de */,
 				3B7F55A02ECCCC64004EA6D3 /* th */,
 				3B7F55A22ECCCC6A004EA6D3 /* hu */,
+				43F49A532FB9B94A00A1B001 /* ar */,
 			);
 			name = Main.storyboard;
 			sourceTree = "<group>";
@@ -224,6 +231,7 @@
 				3BAF36062ECCD04200A08435 /* ja */,
 				3BAF36082ECCD04200A08435 /* es */,
 				3BAF360A2ECCD04300A08435 /* th */,
+				43F49A542FB9B94A00A1B001 /* ar */,
 			);
 			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
@@ -363,7 +371,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Dongled/Dongled.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 33;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
@@ -382,7 +390,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.4;
+				MARKETING_VERSION = 1.4.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.oddforms.dongled;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -403,7 +411,7 @@
 				CODE_SIGN_ENTITLEMENTS = Dongled/Dongled.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 33;
 				DEVELOPMENT_TEAM = V2F5S52T3Q;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -423,7 +431,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.4;
+				MARKETING_VERSION = 1.4.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.oddforms.dongled;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

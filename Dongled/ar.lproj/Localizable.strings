@@ -1,0 +1,7 @@
+"status.camera.disabled" = "تم تعطيل الوصول إلى الكاميرا. قم بتمكينه من إعدادات الخصوصية للمتابعة.";
+"status.scanning.hardware" = "جارٍ البحث عن الجهاز";
+"status.scanning.silent" = "جارٍ البحث عن الجهاز: وضع صامت - تم تعطيل الوصول إلى الميكروفون.";
+"status.connecting" = "جارٍ الاتصال بالجهاز";
+"picker.title" = "اختر إدخال الفيديو";
+"picker.message" = "اختر مصدر فيديو للبث.";
+"picker.cancel" = "إلغاء";
