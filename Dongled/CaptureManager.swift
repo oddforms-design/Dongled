@@ -138,6 +138,13 @@ final class CaptureManager: NSObject {
             guard let self = self else { return }
             let session = AVCaptureSession()
             session.beginConfiguration()
+
+            if self.isRunningOnMac() {
+                /// Use `.inputPriority` so the session defers to the device's activeFormat
+                /// instead of clamping to the default `.high` preset (typically ≤1080p)
+                session.sessionPreset = .inputPriority
+            }
+
             do {
                 let input = try AVCaptureDeviceInput(device: device)
                 if session.canAddInput(input) {
@@ -147,11 +154,99 @@ final class CaptureManager: NSObject {
             } catch {
                 print("Failed to add device input: \(error)")
             }
+
+            /// An iPad typically has more constrained USB bandwidth and processing power
+            /// than a Mac, so the safe behavior of the session is to use the default/implicit `.high` preset.
+            /// Selecting 4k60 on an older iPad could choke the USB bus or drop frames.
+            if self.isRunningOnMac() {
+                self.selectBestFormat(for: device)
+            }
+
             session.commitConfiguration()
 
             self.captureSession = session
             self.startSession()
             self.audioManager.startEngineInputPassThrough()
+        }
+    }
+
+    /// Selects the best format by pixel throughput (width × height × fps).
+    /// For example, this approach favors 3840×2160@60 over 3840×2880@30.
+    private func selectBestFormat(for device: AVCaptureDevice) {
+        let formats = device.formats
+
+        var bestFormat: AVCaptureDevice.Format?
+        var bestWidth: Int32 = 0
+        var bestHeight: Int32 = 0
+        var bestFrameRate: Float64 = 0
+        var bestScore: Float64 = 0
+
+        for format in formats {
+            let desc = format.formatDescription
+            let dimensions = CMVideoFormatDescriptionGetDimensions(desc)
+            let width = dimensions.width
+            let height = dimensions.height
+            let mediaSubType = CMFormatDescriptionGetMediaSubType(desc)
+            let fourCC = String(format: "%c%c%c%c",
+                                (mediaSubType >> 24) & 0xFF,
+                                (mediaSubType >> 16) & 0xFF,
+                                (mediaSubType >> 8) & 0xFF,
+                                mediaSubType & 0xFF)
+
+            let maxRate = format.videoSupportedFrameRateRanges
+                .map { $0.maxFrameRate }
+                .max() ?? 0
+
+            let score = Float64(width) * Float64(height) * maxRate
+
+            print("  Format: \(width)×\(height) @ \(maxRate) fps [\(fourCC)]")
+
+            if score > bestScore {
+                bestFormat = format
+                bestWidth = width
+                bestHeight = height
+                bestFrameRate = maxRate
+                bestScore = score
+            }
+        }
+
+        guard let selectedFormat = bestFormat else {
+            print("No suitable format found. Using device default.")
+            return
+        }
+
+        do {
+            try device.lockForConfiguration()
+            device.activeFormat = selectedFormat
+            /// Set the frame duration to match the best frame rate
+            if bestFrameRate > 0 {
+                device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(bestFrameRate))
+                device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(bestFrameRate))
+            }
+            device.unlockForConfiguration()
+            print("Selected format: \(bestWidth)×\(bestHeight) @ \(bestFrameRate) fps")
+        } catch {
+            print("Failed to set device format: \(error)")
+        }
+    }
+
+    private func selectDevice(_ device: AVCaptureDevice) {
+        currentDevicePicker = nil
+        updateState(.connecting)
+        sessionQueue.asyncAfter(deadline: .now() + 2.2) {
+            let nowDevices = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [.external],
+                mediaType: .video,
+                position: .unspecified
+            ).devices
+            guard nowDevices.contains(where: { $0.uniqueID == device.uniqueID }) else {
+                print("Device Removed. Aborting...")
+                DispatchQueue.main.async {
+                    self.updateState(.scanning)
+                }
+                return
+            }
+            self.configureSession(with: device)
         }
     }
 
@@ -163,6 +258,7 @@ final class CaptureManager: NSObject {
         let layer = AVCaptureVideoPreviewLayer(session: session)
         previewLayer = layer
         layer.frame = view.bounds
+        layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]  // ensure the layer auto-resizes with the parent view.
         layer.videoGravity = .resizeAspect
         view.layer.insertSublayer(layer, at: 0)
         print("Starting Video Preview Layer.")
@@ -217,6 +313,14 @@ final class CaptureManager: NSObject {
             return
         }
 
+        /// If there there is only one device, there is only one choice.  Auto-select!
+        if uniqueDevices.count == 1,
+           let autoSelectedDevice = uniqueDevices.first {
+            print("Auto-selecting device! Booting…")
+            selectDevice(autoSelectedDevice)
+            return
+        }
+
         let presentPicker: () -> Void = { [weak self, weak viewController] in
             guard let self = self, let viewController = viewController else { return }
             let alert = UIAlertController(
@@ -228,21 +332,7 @@ final class CaptureManager: NSObject {
             for uniqueDevice in uniqueDevices {
                 let action = UIAlertAction(title: uniqueDevice.localizedName, style: .default) { [weak self] _ in
                     print("Device Selected! Booting…")
-                    self?.currentDevicePicker = nil
-                    self?.updateState(.connecting)
-                    self?.sessionQueue.asyncAfter(deadline: .now() + 2.2) {
-                        let nowDevices = AVCaptureDevice.DiscoverySession(
-                            deviceTypes: [.external],
-                            mediaType: .video,
-                            position: .unspecified
-                        ).devices
-                        guard nowDevices.contains(where: { $0.uniqueID == uniqueDevice.uniqueID }) else {
-                            print("Device Removed. Aborting...")
-                            DispatchQueue.main.async { self?.updateState(.scanning) }
-                            return
-                        }
-                        self?.configureSession(with: uniqueDevice)
-                    }
+                    self?.selectDevice(uniqueDevice)
                 }
                 alert.addAction(action)
             }
