@@ -76,6 +76,19 @@ final class AudioManager: NSObject {
             do {
                 try engine.start()
                 print("AudioEngine started → Session Running")
+
+                /// Diagnostic: where is audio actually routed?
+                let route = session.currentRoute
+                print("Audio route inputs:")
+                for input in route.inputs {
+                    print("  ← \(input.portName) [type: \(input.portType.rawValue), UID: \(input.uid)]")
+                }
+                print("Audio route outputs:")
+                for output in route.outputs {
+                    print("  → \(output.portName) [type: \(output.portType.rawValue), UID: \(output.uid)]")
+                }
+                print("Output volume: \(engine.mainMixerNode.outputVolume)")
+                print("Input node volume: \(inputNode.volume)")
             } catch {
                 print("Failed to start AVAudioEngine: \(error)")
             }
