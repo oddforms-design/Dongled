@@ -258,7 +258,9 @@ final class CaptureManager: NSObject {
         let layer = AVCaptureVideoPreviewLayer(session: session)
         previewLayer = layer
         layer.frame = view.bounds
+        #if targetEnvironment(macCatalyst)
         layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]  // ensure the layer auto-resizes with the parent view.
+        #endif
         layer.videoGravity = .resizeAspect
         view.layer.insertSublayer(layer, at: 0)
         print("Starting Video Preview Layer.")
