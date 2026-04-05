@@ -21,6 +21,8 @@
 		<string>ar</string>
 		<string>th</string>
 	</array>
+	<key>NSCameraUseExternalDeviceType</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
