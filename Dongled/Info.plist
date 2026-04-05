@@ -5,9 +5,9 @@
 	<key>UISupportsTrueScreenSizeOnMac</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Required for external audio input monitoring</string>
+	<string>Required to Access External Audio Devices</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Required for external video input monitoring</string>
+	<string>Required to Access External Video Devices</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleLocalizations</key>
