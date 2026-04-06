@@ -80,7 +80,9 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
             print("Forcing capture restart after background suspension.")
             needsSessionRestart = false
             captureManager.authorizeCapture(from: self)
-        } else if captureManager.state == .scanning || !hasValidSession {
+        } else if case .scanning = captureManager.state {
+            captureManager.authorizeCapture(from: self)
+        } else if !hasValidSession {
             captureManager.authorizeCapture(from: self)
         } else {
             print("Capture session already active. Skipping re-boot.")
@@ -226,7 +228,11 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
             updateUI(for: .scanning)
         case .connecting:
             updateUI(for: .connecting)
-        case .active:
+        case .active(let connectedDeviceIDs):
+            #if targetEnvironment(macCatalyst)
+            connectedDeviceIDs.forEach { trackedDeviceIDs.update(with: $0) }
+            #endif
+            
             captureManager.attachPreview(to: self.view)
             /// Tiny delay to give the layer time to finish flipping over
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {

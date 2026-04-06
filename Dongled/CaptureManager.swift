@@ -16,7 +16,7 @@ protocol CaptureManagerDelegate: AnyObject {
 final class CaptureManager: NSObject {
     /// UI States
     enum State {
-        case scanning, connecting, active
+        case scanning, connecting, active(_ connectedDeviceIDs: [String])
     }
 
     // MARK: - Properties
@@ -406,7 +406,7 @@ final class CaptureManager: NSObject {
                 return
             }
             session.startRunning()
-            DispatchQueue.main.async { self.updateState(.active) }
+            DispatchQueue.main.async { self.updateState(.active(connectedInputIDs)) }
         }
     }
 
