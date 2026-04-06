@@ -29,6 +29,13 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     private var trackedDeviceIDs = Set<String>()
     private var needsSessionRestart = false
     
+    #if targetEnvironment(macCatalyst)
+    // MARK: - Properties (Cursor Auto-Hide - Mac Catalyst)
+    private var cursorHideTimer: Timer?
+    private var isCursorHidden = false
+    private let cursorHideDelay: TimeInterval = 3.0
+    #endif
+    
     override var prefersHomeIndicatorAutoHidden: Bool { true }
     override var prefersStatusBarHidden: Bool { isStatusBarHidden }
     
@@ -47,6 +54,10 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
         captureManager.delegate = self
         view.backgroundColor = .black
         registerNotifications()
+        
+        #if targetEnvironment(macCatalyst)
+        setupCursorAutoHide()
+        #endif
     }
     
     // MARK: - Notification Registration
@@ -163,6 +174,10 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
                 self.coverView.isHidden = false
                 self.noDeviceLabel.isHidden = false
                 
+                #if targetEnvironment(macCatalyst)
+                self.cancelCursorHideTimer()
+                #endif
+                
                 let camStatus = AVCaptureDevice.authorizationStatus(for: .video)
                 let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
                 
@@ -185,12 +200,20 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
                 self.noDeviceLabel.text = StatusText.connecting
                 self.activityIndicator.isHidden = false
                 
+                #if targetEnvironment(macCatalyst)
+                self.cancelCursorHideTimer()
+                #endif
+                
             case .active:
                 self.isStatusBarHidden = true
                 UIApplication.shared.isIdleTimerDisabled = true
                 self.coverView.isHidden = true
                 self.noDeviceLabel.isHidden = true
                 self.activityIndicator.isHidden = true
+                
+                #if targetEnvironment(macCatalyst)
+                self.resetCursorHideTimer()
+                #endif
             }
         }
     }
@@ -219,3 +242,61 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
         NotificationCenter.default.removeObserver(self)
     }
 }
+
+// MARK: - UIPointerInteractionDelegate (Cursor Auto-Hide - Mac Catalyst)
+
+#if targetEnvironment(macCatalyst)
+extension ViewController: UIPointerInteractionDelegate {
+    
+    fileprivate func setupCursorAutoHide() {
+        let hover = UIHoverGestureRecognizer(target: self, action: #selector(handleHover(_:)))
+        view.addGestureRecognizer(hover)
+        
+        let pointerInteraction = UIPointerInteraction(delegate: self)
+        view.addInteraction(pointerInteraction)
+    }
+    
+    @objc private func handleHover(_ recognizer: UIHoverGestureRecognizer) {
+        switch recognizer.state {
+        case .changed:
+            showCursor()
+            resetCursorHideTimer()
+        default:
+            break
+        }
+    }
+    
+    fileprivate func resetCursorHideTimer() {
+        cursorHideTimer?.invalidate()
+        cursorHideTimer = Timer.scheduledTimer(withTimeInterval: cursorHideDelay, repeats: false) { [weak self] _ in
+            self?.hideCursor()
+        }
+    }
+    
+    fileprivate func cancelCursorHideTimer() {
+        cursorHideTimer?.invalidate()
+        cursorHideTimer = nil
+        showCursor()
+    }
+    
+    private func hideCursor() {
+        guard !isCursorHidden else { return }
+        isCursorHidden = true
+        view.interactions
+            .compactMap { $0 as? UIPointerInteraction }
+            .forEach { $0.invalidate() }
+    }
+    
+    private func showCursor() {
+        guard isCursorHidden else { return }
+        isCursorHidden = false
+        view.interactions
+            .compactMap { $0 as? UIPointerInteraction }
+            .forEach { $0.invalidate() }
+    }
+    
+    func pointerInteraction(_ interaction: UIPointerInteraction, styleFor region: UIPointerRegion) -> UIPointerStyle? {
+        return isCursorHidden ? .hidden() : nil
+    }
+}
+#endif
