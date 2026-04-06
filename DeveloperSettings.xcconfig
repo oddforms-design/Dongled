@@ -1,0 +1,3 @@
+// Developer-specific settings — do not commit changes to source control.
+DEVELOPMENT_TEAM = V2F5S52T3Q
+PRODUCT_BUNDLE_IDENTIFIER = com.oddforms.dongled
