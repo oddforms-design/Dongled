@@ -30,10 +30,10 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     private var needsSessionRestart = false
     
     #if targetEnvironment(macCatalyst)
-    // MARK: - Properties (Cursor Auto-Hide - Mac Catalyst)
-    private var cursorHideTimer: Timer?
+    // MARK: - Properties (Chrome Auto-Hide - Mac Catalyst)
+    private var chromeHideTimer: Timer?
     private var isCursorHidden = false
-    private let cursorHideDelay: TimeInterval = 3.0
+    private let chromeHideDelay: TimeInterval = 3.0
     #endif
     
     override var prefersHomeIndicatorAutoHidden: Bool { true }
@@ -56,7 +56,7 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
         registerNotifications()
         
         #if targetEnvironment(macCatalyst)
-        setupCursorAutoHide()
+        setupChromeAutoHide()
         #endif
     }
     
@@ -243,60 +243,101 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     }
 }
 
-// MARK: - UIPointerInteractionDelegate (Cursor Auto-Hide - Mac Catalyst)
 
 #if targetEnvironment(macCatalyst)
+// MARK: - UIPointerInteractionDelegate (Chrome Auto-Hide - Mac Catalyst)
 extension ViewController: UIPointerInteractionDelegate {
-    
-    fileprivate func setupCursorAutoHide() {
+
+    // MARK: - Chrome Auto-Hide Orchestration
+
+    fileprivate func setupChromeAutoHide() {
         let hover = UIHoverGestureRecognizer(target: self, action: #selector(handleHover(_:)))
         view.addGestureRecognizer(hover)
-        
+
         let pointerInteraction = UIPointerInteraction(delegate: self)
         view.addInteraction(pointerInteraction)
     }
-    
+
     @objc private func handleHover(_ recognizer: UIHoverGestureRecognizer) {
         switch recognizer.state {
         case .changed:
-            showCursor()
+            showChrome()
             resetCursorHideTimer()
         default:
             break
         }
     }
-    
+
     fileprivate func resetCursorHideTimer() {
-        cursorHideTimer?.invalidate()
-        cursorHideTimer = Timer.scheduledTimer(withTimeInterval: cursorHideDelay, repeats: false) { [weak self] _ in
-            self?.hideCursor()
+        chromeHideTimer?.invalidate()
+        chromeHideTimer = Timer.scheduledTimer(withTimeInterval: chromeHideDelay, repeats: false) { [weak self] _ in
+            self?.hideChrome()
         }
     }
-    
+
     fileprivate func cancelCursorHideTimer() {
-        cursorHideTimer?.invalidate()
-        cursorHideTimer = nil
-        showCursor()
+        chromeHideTimer?.invalidate()
+        chromeHideTimer = nil
+        showChrome()
     }
-    
-    private func hideCursor() {
+
+    private func hideChrome() {
         guard !isCursorHidden else { return }
         isCursorHidden = true
         view.interactions
             .compactMap { $0 as? UIPointerInteraction }
             .forEach { $0.invalidate() }
+        setTitlebarHidden(true)
     }
-    
-    private func showCursor() {
+
+    private func showChrome() {
         guard isCursorHidden else { return }
         isCursorHidden = false
         view.interactions
             .compactMap { $0 as? UIPointerInteraction }
             .forEach { $0.invalidate() }
+        setTitlebarHidden(false)
     }
-    
+
+    // MARK: - UIPointerInteractionDelegate
+
     func pointerInteraction(_ interaction: UIPointerInteraction, styleFor region: UIPointerRegion) -> UIPointerStyle? {
         return isCursorHidden ? .hidden() : nil
+    }
+
+    // MARK: - Titlebar Visibility
+
+    private func setTitlebarHidden(_ hidden: Bool) {
+        guard let windowScene = view.window?.windowScene,
+              let titlebar = windowScene.titlebar else { return }
+
+        titlebar.titleVisibility = hidden ? .hidden : .visible
+
+        // TASK: Hide/show standard window buttons (close, minimize, zoom)
+
+        // NOTE: Since Mac Catalyst does not support directly accessing some APIs,
+        // (e.g. `NSWindow`, `NSWindowButton`) we'll need to do dynamic lookup
+        // to accomplish our task.
+        // See <https://developer.apple.com/forums/thread/769279>, <https://developer.apple.com/documentation/UIKit/mac-catalyst>.
+
+        guard let nsApp = NSClassFromString("NSApplication"),
+              let sharedApp = nsApp.value(forKeyPath: "sharedApplication") as? NSObject,
+              let nsWindow = sharedApp.value(forKey: "keyWindow") as? NSObject else { return }
+
+        let buttonSel = NSSelectorFromString("standardWindowButton:")
+        guard nsWindow.responds(to: buttonSel) else { return }
+
+        typealias ButtonIMP = @convention(c) (NSObject, Selector, Int) -> NSObject?
+        let imp = nsWindow.method(for: buttonSel)
+        let buttonFunc = unsafeBitCast(imp, to: ButtonIMP.self)
+
+        /// The value space (0...2) is a set representing the NSWindowButton enumeration:
+        /// (NSWindowCloseButton, NSWindowMiniaturizeButton, NSWindowZoomButton)
+        for buttonType in 0...2 {
+            if let button = buttonFunc(nsWindow, buttonSel, buttonType) {
+                button.setValue(hidden, forKey: "hidden")
+            }
+        }
     }
 }
 #endif
