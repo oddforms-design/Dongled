@@ -81,6 +81,10 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
         let hasValidSession = captureManager.hasValidSession
         if needsSessionRestart {
             print("Forcing capture restart after background suspension.")
+#if targetEnvironment(macCatalyst)
+            showChrome(forceTitlebarVisible: true)
+            resetCursorHideTimer()
+#endif
             needsSessionRestart = false
             captureManager.authorizeCapture(from: self)
         } else if case .scanning = captureManager.state {
@@ -313,7 +317,18 @@ extension ViewController: UIPointerInteractionDelegate {
         setTitlebarHidden(true)
     }
 
-    private func showChrome() {
+    private func showChrome(forceTitlebarVisible: Bool = false) {
+        /// NOTE: If the app had hidden its chrome prior to being backgrounded, when the app returns
+        /// to the foreground, UIKit resets its own state — effectively restoring `title​Visibility` to
+        /// `.visible` and invalidates/resets the underlying `UIPointer​Interaction` so the
+        /// cursor reappears. However, the AppKit-level `hidden` property set directly on the
+        /// `NSButton` objects is not reset by the system.  To keep concerns as self-contained as
+        /// possible, allow callers to force our state to be coherent with UIKit.
+        if forceTitlebarVisible, !isCursorHidden {
+            setTitlebarHidden(false)
+            return
+        }
+
         guard isCursorHidden else { return }
         isCursorHidden = false
         view.interactions
