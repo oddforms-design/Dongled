@@ -48,16 +48,19 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     }
     
     // MARK: - Lifecycle
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+#if targetEnvironment(macCatalyst)
+        setupChromeAutoHide()  // Requires a key window in order to perform appearance modifications.
+#endif
+    }
+
     // Initial setup for UI handling
     override func viewDidLoad() {
         super.viewDidLoad()
         captureManager.delegate = self
         view.backgroundColor = .black
         registerNotifications()
-        
-        #if targetEnvironment(macCatalyst)
-        setupChromeAutoHide()
-        #endif
     }
     
     // MARK: - Notification Registration
@@ -262,6 +265,20 @@ extension ViewController: UIPointerInteractionDelegate {
 
         let pointerInteraction = UIPointerInteraction(delegate: self)
         view.addInteraction(pointerInteraction)
+
+        // TASK: Force a dark appearance so title text can remain readable over arbitrary video content.
+
+        guard let nsWindow = sharedKeyWindow else { return }
+
+        if let appearanceClass = NSClassFromString("NSAppearance") as? NSObject.Type {
+            let sel = NSSelectorFromString("appearanceNamed:")
+            let darkAqua = (appearanceClass as AnyObject)
+                .perform(sel, with: "NSAppearanceNameDarkAqua")?
+                .takeUnretainedValue()
+            nsWindow.setValue(darkAqua, forKey: "appearance")
+        } else {
+            print("Unable to force dark appearance.")
+        }
     }
 
     @objc private func handleHover(_ recognizer: UIHoverGestureRecognizer) {
@@ -326,12 +343,9 @@ extension ViewController: UIPointerInteractionDelegate {
         // to accomplish our task.
         // See <https://developer.apple.com/forums/thread/769279>, <https://developer.apple.com/documentation/UIKit/mac-catalyst>.
 
-        guard let nsApp = NSClassFromString("NSApplication"),
-              let sharedApp = nsApp.value(forKeyPath: "sharedApplication") as? NSObject,
-              let nsWindow = sharedApp.value(forKey: "keyWindow") as? NSObject else { return }
-
         let buttonSel = NSSelectorFromString("standardWindowButton:")
-        guard nsWindow.responds(to: buttonSel) else { return }
+        guard let nsWindow = sharedKeyWindow,
+              nsWindow.responds(to: buttonSel) else { return }
 
         typealias ButtonIMP = @convention(c) (NSObject, Selector, Int) -> NSObject?
         let imp = nsWindow.method(for: buttonSel)
@@ -343,6 +357,18 @@ extension ViewController: UIPointerInteractionDelegate {
             if let button = buttonFunc(nsWindow, buttonSel, buttonType) {
                 button.setValue(hidden, forKey: "hidden")
             }
+        }
+    }
+
+    // MARK: - AppKit Helpers
+
+    private var sharedKeyWindow: NSObject? {
+        if let nsApp = NSClassFromString("NSApplication"),
+              let sharedApp = nsApp.value(forKeyPath: "sharedApplication") as? NSObject,
+              let nsWindow = sharedApp.value(forKey: "keyWindow") as? NSObject {
+            nsWindow
+        } else {
+            nil
         }
     }
 }
