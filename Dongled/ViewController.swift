@@ -29,6 +29,13 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     private var trackedDeviceIDs = Set<String>()
     private var needsSessionRestart = false
     
+    #if targetEnvironment(macCatalyst)
+    // MARK: - Properties (Chrome Auto-Hide - Mac Catalyst)
+    private var chromeHideTimer: Timer?
+    private var isCursorHidden = false
+    private let chromeHideDelay: TimeInterval = 3.0
+    #endif
+    
     override var prefersHomeIndicatorAutoHidden: Bool { true }
     override var prefersStatusBarHidden: Bool { isStatusBarHidden }
     
@@ -41,6 +48,13 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     }
     
     // MARK: - Lifecycle
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+#if targetEnvironment(macCatalyst)
+        setupChromeAutoHide()  // Requires a key window in order to perform appearance modifications.
+#endif
+    }
+
     // Initial setup for UI handling
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -67,9 +81,15 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
         let hasValidSession = captureManager.hasValidSession
         if needsSessionRestart {
             print("Forcing capture restart after background suspension.")
+#if targetEnvironment(macCatalyst)
+            showChrome(forceTitlebarVisible: true)
+            resetCursorHideTimer()
+#endif
             needsSessionRestart = false
             captureManager.authorizeCapture(from: self)
-        } else if captureManager.state == .scanning || !hasValidSession {
+        } else if case .scanning = captureManager.state {
+            captureManager.authorizeCapture(from: self)
+        } else if !hasValidSession {
             captureManager.authorizeCapture(from: self)
         } else {
             print("Capture session already active. Skipping re-boot.")
@@ -163,6 +183,10 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
                 self.coverView.isHidden = false
                 self.noDeviceLabel.isHidden = false
                 
+                #if targetEnvironment(macCatalyst)
+                self.cancelCursorHideTimer()
+                #endif
+                
                 let camStatus = AVCaptureDevice.authorizationStatus(for: .video)
                 let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
                 
@@ -185,12 +209,20 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
                 self.noDeviceLabel.text = StatusText.connecting
                 self.activityIndicator.isHidden = false
                 
+                #if targetEnvironment(macCatalyst)
+                self.cancelCursorHideTimer()
+                #endif
+                
             case .active:
                 self.isStatusBarHidden = true
                 UIApplication.shared.isIdleTimerDisabled = true
                 self.coverView.isHidden = true
                 self.noDeviceLabel.isHidden = true
                 self.activityIndicator.isHidden = true
+                
+                #if targetEnvironment(macCatalyst)
+                self.resetCursorHideTimer()
+                #endif
             }
         }
     }
@@ -203,7 +235,11 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
             updateUI(for: .scanning)
         case .connecting:
             updateUI(for: .connecting)
-        case .active:
+        case .active(let connectedDeviceIDs):
+            #if targetEnvironment(macCatalyst)
+            connectedDeviceIDs.forEach { trackedDeviceIDs.update(with: $0) }
+            #endif
+            
             captureManager.attachPreview(to: self.view)
             /// Tiny delay to give the layer time to finish flipping over
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
@@ -219,3 +255,136 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
         NotificationCenter.default.removeObserver(self)
     }
 }
+
+
+#if targetEnvironment(macCatalyst)
+// MARK: - UIPointerInteractionDelegate (Chrome Auto-Hide - Mac Catalyst)
+extension ViewController: UIPointerInteractionDelegate {
+
+    // MARK: - Chrome Auto-Hide Orchestration
+
+    fileprivate func setupChromeAutoHide() {
+        let hover = UIHoverGestureRecognizer(target: self, action: #selector(handleHover(_:)))
+        view.addGestureRecognizer(hover)
+
+        let pointerInteraction = UIPointerInteraction(delegate: self)
+        view.addInteraction(pointerInteraction)
+
+        // TASK: Force a dark appearance so title text can remain readable over arbitrary video content.
+
+        guard let nsWindow = sharedKeyWindow else { return }
+
+        if let appearanceClass = NSClassFromString("NSAppearance") as? NSObject.Type {
+            let sel = NSSelectorFromString("appearanceNamed:")
+            let darkAqua = (appearanceClass as AnyObject)
+                .perform(sel, with: "NSAppearanceNameDarkAqua")?
+                .takeUnretainedValue()
+            nsWindow.setValue(darkAqua, forKey: "appearance")
+        } else {
+            print("Unable to force dark appearance.")
+        }
+    }
+
+    @objc private func handleHover(_ recognizer: UIHoverGestureRecognizer) {
+        switch recognizer.state {
+        case .changed:
+            showChrome()
+            resetCursorHideTimer()
+        default:
+            break
+        }
+    }
+
+    fileprivate func resetCursorHideTimer() {
+        chromeHideTimer?.invalidate()
+        chromeHideTimer = Timer.scheduledTimer(withTimeInterval: chromeHideDelay, repeats: false) { [weak self] _ in
+            self?.hideChrome()
+        }
+    }
+
+    fileprivate func cancelCursorHideTimer() {
+        chromeHideTimer?.invalidate()
+        chromeHideTimer = nil
+        showChrome()
+    }
+
+    private func hideChrome() {
+        guard !isCursorHidden else { return }
+        isCursorHidden = true
+        view.interactions
+            .compactMap { $0 as? UIPointerInteraction }
+            .forEach { $0.invalidate() }
+        setTitlebarHidden(true)
+    }
+
+    private func showChrome(forceTitlebarVisible: Bool = false) {
+        /// NOTE: If the app had hidden its chrome prior to being backgrounded, when the app returns
+        /// to the foreground, UIKit resets its own state — effectively restoring `title​Visibility` to
+        /// `.visible` and invalidates/resets the underlying `UIPointer​Interaction` so the
+        /// cursor reappears. However, the AppKit-level `hidden` property set directly on the
+        /// `NSButton` objects is not reset by the system.  To keep concerns as self-contained as
+        /// possible, allow callers to force our state to be coherent with UIKit.
+        if forceTitlebarVisible, !isCursorHidden {
+            setTitlebarHidden(false)
+            return
+        }
+
+        guard isCursorHidden else { return }
+        isCursorHidden = false
+        view.interactions
+            .compactMap { $0 as? UIPointerInteraction }
+            .forEach { $0.invalidate() }
+        setTitlebarHidden(false)
+    }
+
+    // MARK: - UIPointerInteractionDelegate
+
+    func pointerInteraction(_ interaction: UIPointerInteraction, styleFor region: UIPointerRegion) -> UIPointerStyle? {
+        return isCursorHidden ? .hidden() : nil
+    }
+
+    // MARK: - Titlebar Visibility
+
+    private func setTitlebarHidden(_ hidden: Bool) {
+        guard let windowScene = view.window?.windowScene,
+              let titlebar = windowScene.titlebar else { return }
+
+        titlebar.titleVisibility = hidden ? .hidden : .visible
+
+        // TASK: Hide/show standard window buttons (close, minimize, zoom)
+
+        // NOTE: Since Mac Catalyst does not support directly accessing some APIs,
+        // (e.g. `NSWindow`, `NSWindowButton`) we'll need to do dynamic lookup
+        // to accomplish our task.
+        // See <https://developer.apple.com/forums/thread/769279>, <https://developer.apple.com/documentation/UIKit/mac-catalyst>.
+
+        let buttonSel = NSSelectorFromString("standardWindowButton:")
+        guard let nsWindow = sharedKeyWindow,
+              nsWindow.responds(to: buttonSel) else { return }
+
+        typealias ButtonIMP = @convention(c) (NSObject, Selector, Int) -> NSObject?
+        let imp = nsWindow.method(for: buttonSel)
+        let buttonFunc = unsafeBitCast(imp, to: ButtonIMP.self)
+
+        /// The value space (0...2) is a set representing the NSWindowButton enumeration:
+        /// (NSWindowCloseButton, NSWindowMiniaturizeButton, NSWindowZoomButton)
+        for buttonType in 0...2 {
+            if let button = buttonFunc(nsWindow, buttonSel, buttonType) {
+                button.setValue(hidden, forKey: "hidden")
+            }
+        }
+    }
+
+    // MARK: - AppKit Helpers
+
+    private var sharedKeyWindow: NSObject? {
+        if let nsApp = NSClassFromString("NSApplication"),
+              let sharedApp = nsApp.value(forKeyPath: "sharedApplication") as? NSObject,
+              let nsWindow = sharedApp.value(forKey: "keyWindow") as? NSObject {
+            nsWindow
+        } else {
+            nil
+        }
+    }
+}
+#endif
