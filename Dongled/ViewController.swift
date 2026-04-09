@@ -270,7 +270,7 @@ extension ViewController: UIPointerInteractionDelegate {
         let pointerInteraction = UIPointerInteraction(delegate: self)
         view.addInteraction(pointerInteraction)
 
-        // TASK: Force a dark appearance so title text can remain readable over arbitrary video content.
+        /// Force a dark appearance so title text can remain readable over arbitrary video content.
 
         guard let nsWindow = sharedKeyWindow else { return }
 
@@ -351,12 +351,8 @@ extension ViewController: UIPointerInteractionDelegate {
 
         titlebar.titleVisibility = hidden ? .hidden : .visible
 
-        // TASK: Hide/show standard window buttons (close, minimize, zoom)
-
-        // NOTE: Since Mac Catalyst does not support directly accessing some APIs,
-        // (e.g. `NSWindow`, `NSWindowButton`) we'll need to do dynamic lookup
-        // to accomplish our task.
-        // See <https://developer.apple.com/forums/thread/769279>, <https://developer.apple.com/documentation/UIKit/mac-catalyst>.
+        /// Hide/show standard window buttons (close, minimize, zoom) using Mac Catalyst method
+        /// See <https://developer.apple.com/forums/thread/769279>, <https://developer.apple.com/documentation/UIKit/mac-catalyst>.
 
         let buttonSel = NSSelectorFromString("standardWindowButton:")
         guard let nsWindow = sharedKeyWindow,

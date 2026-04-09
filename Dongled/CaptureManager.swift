@@ -170,11 +170,12 @@ final class CaptureManager: NSObject {
         }
     }
 
-    /// Selects the best format by pixel throughput (width × height × fps).
-    /// For example, this approach favors 3840×2160@60 over 3840×2880@30.
+    // Selects the best format by pixel throughput
     private func selectBestFormat(for device: AVCaptureDevice) {
+        /// Get all formats the capture device supports (resolution, frame rate, pixel format)
         let formats = device.formats
 
+        /// Track the winning format and its stats as we loop through candidates
         var bestFormat: AVCaptureDevice.Format?
         var bestWidth: Int32 = 0
         var bestHeight: Int32 = 0
@@ -183,9 +184,14 @@ final class CaptureManager: NSObject {
 
         for format in formats {
             let desc = format.formatDescription
+
+            /// Pull the pixel dimensions from the format descriptor
             let dimensions = CMVideoFormatDescriptionGetDimensions(desc)
             let width = dimensions.width
             let height = dimensions.height
+
+            /// Decode the pixel format as a human-readable FourCC string (e.g. "420v", "BGRA")
+            /// The raw value is a 32-bit int where each byte is one ASCII character
             let mediaSubType = CMFormatDescriptionGetMediaSubType(desc)
             let fourCC = String(format: "%c%c%c%c",
                                 (mediaSubType >> 24) & 0xFF,
@@ -193,14 +199,18 @@ final class CaptureManager: NSObject {
                                 (mediaSubType >> 8) & 0xFF,
                                 mediaSubType & 0xFF)
 
+            /// Get the framerate ceiling
             let maxRate = format.videoSupportedFrameRateRanges
                 .map { $0.maxFrameRate }
                 .max() ?? 0
 
+            /// Score = total pixels per second. Higher is better.
+            /// This single number lets us compare very different formats (4K30 vs 1080p120, etc.)
             let score = Float64(width) * Float64(height) * maxRate
 
             print("  Format: \(width)×\(height) @ \(maxRate) fps [\(fourCC)]")
 
+            /// Keep this format if it beats the current best score
             if score > bestScore {
                 bestFormat = format
                 bestWidth = width
@@ -210,15 +220,19 @@ final class CaptureManager: NSObject {
             }
         }
 
+        /// If no format was found at all bail out
         guard let selectedFormat = bestFormat else {
             print("No suitable format found. Using device default.")
             return
         }
 
         do {
+            /// AVCaptureDevice settings must be changed inside a lock/unlock pair
             try device.lockForConfiguration()
             device.activeFormat = selectedFormat
-            /// Set the frame duration to match the best frame rate
+
+            /// Pin both the min and max frame duration to the same value to lock in a fixed frame rate.
+            /// CMTime(value: 1, timescale: fps) = a 1/fps second interval per frame.
             if bestFrameRate > 0 {
                 device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(bestFrameRate))
                 device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(bestFrameRate))
