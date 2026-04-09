@@ -1,9 +1,9 @@
-# Dongled – UVC Monitor for iPadOS
-### Dongled is an open-source, lightweight, HDMI video streaming app for USB-C enabled iPadOS devices, to turn your iPad into a wired video monitor.
+# Dongled – Simple UVC Monitor
+### Dongled is an open-source, lightweight, UVC video streaming app for USB-C enabled iPadOS and macOS devices, turning them into a wired video monitor.
 
 - Streamlined: Dongled has no interface. Just plug in and start monitoring. The app chooses the best available frame rate and audio quality for your device.
 - Low Latency: Dongled aims to minimize any latency, experience quicker response times vs wireless connections.
-- Real-time Monitoring: Connect to USB-C HDMI sources for video and, on supported devices, 1 or 2 channel audio playback.
+- Real-time Monitoring: Connect to USB-C HDMI sources for video and, on iOS devices, 1 or 2 channel audio playback.
 - HDMI Gaming: Directly connect your game console to your iPad for a full-screen experience.
 - Simple Camera Input: Easily monitor camera feeds. No need for complex wireless configurations with UVC.
 - Dongled is Open-Source, free, Ad-Free and does not collect user data.
@@ -12,7 +12,7 @@ Are you interested in [contributing](https://github.com/oddforms-design/Dongled/
 
 #### To get the latest version of Dongled, please visit the [Dongled AppStore page](https://apps.apple.com/us/app/dongled/id6465788521).
 
-Dongled requires iPadOS17 or greater and an iPad with a USB-C port. Building the project requires xcode 15.3.
+Dongled requires iPadOS 17 or greater and an iPad with a USB-C port. The macOS version requires an M-series system and macOS 14 Sonoma or newer. Building the project requires Xcode 15.3. 
 
 #### Trademark notice
 
