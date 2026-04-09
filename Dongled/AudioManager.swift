@@ -42,8 +42,11 @@ final class AudioManager: NSObject {
                 return
             }
 
-            /// USB devices only please on MacOS
-            guard let usbInput = availableInputs.first(where: { $0.portType == .usbAudio }) else {
+            /// USB devices only please on MacOS — exclude display audio (e.g. DisplayAudio from external monitors)
+            guard let usbInput = availableInputs.first(where: {
+                $0.portType == .usbAudio &&
+                !$0.portName.localizedCaseInsensitiveContains("display audio")
+            }) else {
                 print("No USB audio input found. Blocking audio engine startup.")
                 return
             }
