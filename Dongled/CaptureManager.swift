@@ -175,12 +175,17 @@ final class CaptureManager: NSObject {
         /// Get all formats the capture device supports (resolution, frame rate, pixel format)
         let formats = device.formats
 
+        /// Accumulate pixel formats per resolution+fps key for grouped printing
+        var formatGroups: [String: [String]] = [:]
+
         /// Track the winning format and its stats as we loop through candidates
         var bestFormat: AVCaptureDevice.Format?
         var bestWidth: Int32 = 0
         var bestHeight: Int32 = 0
         var bestFrameRate: Float64 = 0
         var bestScore: Float64 = 0
+        var bestRank: Int = -1
+        var bestFourCC: String = ""
 
         for format in formats {
             let desc = format.formatDescription
@@ -207,17 +212,26 @@ final class CaptureManager: NSObject {
             /// Score = total pixels per second. Higher is better.
             /// This single number lets us compare very different formats (4K30 vs 1080p120, etc.)
             let score = Float64(width) * Float64(height) * maxRate
+            let rank = formatRank(fourCC)
 
-            print("  Format: \(width)×\(height) @ \(maxRate) fps [\(fourCC)]")
+            formatGroups["\(width)×\(height) @ \(maxRate) fps", default: []].append(fourCC)
 
-            /// Keep this format if it beats the current best score
-            if score > bestScore {
+            /// Keep this format if it beats the current best score,
+            /// or matches the score but has a preferred pixel format
+            if score > bestScore || (score == bestScore && rank > bestRank) {
                 bestFormat = format
                 bestWidth = width
                 bestHeight = height
                 bestFrameRate = maxRate
                 bestScore = score
+                bestRank = rank
+                bestFourCC = fourCC
             }
+        }
+        
+        /// Print all formats grouped by resolution and frame rate
+        for (key, fourccs) in formatGroups {
+            print("  Format: \(key) [\(fourccs.joined(separator: ", "))]")
         }
 
         /// If no format was found at all bail out
@@ -232,18 +246,44 @@ final class CaptureManager: NSObject {
             device.activeFormat = selectedFormat
 
             /// Pin both the min and max frame duration to the same value to lock in a fixed frame rate.
-            /// CMTime(value: 1, timescale: fps) = a 1/fps second interval per frame.
-            if bestFrameRate > 0 {
-                device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(bestFrameRate))
-                device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(bestFrameRate))
+            /// We use minFrameDuration from the rate range rather than computing ourselves to prevent NTSC rounding issues
+            if let bestRange = selectedFormat.videoSupportedFrameRateRanges
+                .max(by: { $0.maxFrameRate < $1.maxFrameRate }) {
+                device.activeVideoMinFrameDuration = bestRange.minFrameDuration
+                device.activeVideoMaxFrameDuration = bestRange.minFrameDuration
             }
             device.unlockForConfiguration()
-            print("Selected format: \(bestWidth)×\(bestHeight) @ \(bestFrameRate) fps")
+            print("Selected format: \(bestWidth)×\(bestHeight) @ \(bestFrameRate) fps [\(bestFourCC)]")
         } catch {
             print("Failed to set device format: \(error)")
         }
     }
+    /// Rank pixel formats. Higher is better. Score ties are broken by this rank. We prioritize metal-native over chroma.
+    private func formatRank(_ fourCC: String) -> Int {
+        switch fourCC {
+        /// 4:2:0 — Metal-native
+        case "x420": return 10  /// 10-bit 4:2:0, Metal-capable on Apple Silicon
+        case "420v": return 9   /// Matches HDMI source output
+        case "420f": return 8   /// full range version
+        
+        /// 4:2:2 rank lower since requires shader conversion to render
+        case "2vuy": return 7
+        case "yuvs": return 6
+        case "yuv2": return 6
+        case "v210": return 5
 
+        /// Memory-heavy
+        case "BGRA": return 4
+        case "2BGR": return 3
+
+        /// Decode formats rank lowest
+        case "h264": return 2
+        case "HEVC", "hvc1": return 2
+        case "dmb1", "MJPG": return 1
+
+        default: return 0
+        }
+    }
     private func selectDevice(_ device: AVCaptureDevice) {
         currentDevicePicker = nil
         updateState(.connecting)
