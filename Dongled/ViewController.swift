@@ -34,6 +34,10 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     private var chromeHideTimer: Timer?
     private var isCursorHidden = false
     private let chromeHideDelay: TimeInterval = 3.0
+
+    /// Activity assertion that keeps the display awake while capture is active.
+    /// - Remark: `UIApplication.isIdleTimerDisabled` does not prevent display sleep on Mac Catalyst.
+    private var displayAwakeToken: (any NSObjectProtocol)?
     #endif
     
     override var prefersHomeIndicatorAutoHidden: Bool { true }
@@ -172,14 +176,34 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     enum UIState {
         case scanning, connecting, active
     }
-    
+
+    /// Keeps the display awake while capture is active.
+    /// On Mac Catalyst `UIApplication.isIdleTimerDisabled` does not block display sleep,
+    /// so hold a `ProcessInfo` activity assertion with `.idleDisplaySleepDisabled` instead.
+    private func setKeepDisplayAwake(_ awake: Bool) {
+#if targetEnvironment(macCatalyst)
+        if awake {
+            guard displayAwakeToken == nil else { return }
+            displayAwakeToken = ProcessInfo.processInfo.beginActivity(
+                options: [.idleDisplaySleepDisabled, .userInitiated],
+                reason: "Capturing video from external device"
+            )
+        } else if let token = displayAwakeToken {
+            ProcessInfo.processInfo.endActivity(token)
+            displayAwakeToken = nil
+        }
+#else
+        UIApplication.shared.isIdleTimerDisabled = awake
+#endif
+    }
+
     // Updates the UI for the given state
     func updateUI(for state: UIState) {
         DispatchQueue.main.async {
             switch state {
             case .scanning:
                 self.isStatusBarHidden = false
-                UIApplication.shared.isIdleTimerDisabled = false
+                self.setKeepDisplayAwake(false)
                 self.coverView.isHidden = false
                 self.noDeviceLabel.isHidden = false
                 
@@ -203,7 +227,7 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
                 
             case .connecting:
                 self.isStatusBarHidden = false
-                UIApplication.shared.isIdleTimerDisabled = false
+                self.setKeepDisplayAwake(false)
                 self.coverView.isHidden = false
                 self.noDeviceLabel.isHidden = false
                 self.noDeviceLabel.text = StatusText.connecting
@@ -215,7 +239,7 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
                 
             case .active:
                 self.isStatusBarHidden = true
-                UIApplication.shared.isIdleTimerDisabled = true
+                self.setKeepDisplayAwake(true)
                 self.coverView.isHidden = true
                 self.noDeviceLabel.isHidden = true
                 self.activityIndicator.isHidden = true
