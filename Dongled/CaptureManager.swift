@@ -337,7 +337,15 @@ final class CaptureManager: NSObject {
             layer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))
 
             /// Rotation
-            if let coordinator = self.rotationCoordinator {
+            if self.isRunningOnMac() {
+                /// The Mac window never physically rotates, so the upright angle is constant.
+                /// The coordinator is unreliable here across OS versions (newer macOS reports a
+                /// 180 offset), and the connection defaults to portrait (90), so pin landscape.
+                let macAngle: CGFloat = 0
+                if connection.isVideoRotationAngleSupported(macAngle) {
+                    connection.videoRotationAngle = macAngle
+                }
+            } else if let coordinator = self.rotationCoordinator {
                 let angle = coordinator.videoRotationAngleForHorizonLevelPreview
                 if connection.isVideoRotationAngleSupported(angle) {
                     connection.videoRotationAngle = angle

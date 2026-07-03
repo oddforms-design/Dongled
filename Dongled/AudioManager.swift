@@ -42,8 +42,15 @@ final class AudioManager: NSObject {
                 return
             }
 
-            /// USB devices only please on MacOS
-            guard let usbInput = availableInputs.first(where: { $0.portType == .usbAudio }) else {
+            /// USB audio only on MacOS, but external displays also enumerate as USBAudio (Apple Studio/
+            /// Pro Display, LG UltraFine, other Mac-compatible monitors) and we only want the capture dongle.
+            /// TEMPORARY name blocklist, the real fix is matching audio to the selected video device in a
+            /// bigger update. Keep tokens specific, short brand names collide with capture gear (eg "LG" hits Elgato).
+            let blockedNames = ["Display", "UltraFine"]
+            guard let usbInput = availableInputs.first(where: { input in
+                input.portType == .usbAudio &&
+                !blockedNames.contains(where: { input.portName.localizedCaseInsensitiveContains($0) })
+            }) else {
                 print("No USB audio input found. Blocking audio engine startup.")
                 return
             }
