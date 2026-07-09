@@ -155,9 +155,7 @@ final class CaptureManager: NSObject {
                 print("Failed to add device input: \(error)")
             }
 
-            /// An iPad typically has more constrained USB bandwidth and processing power
-            /// than a Mac, so the safe behavior of the session is to use the default/implicit `.high` preset.
-            /// Selecting 4k60 on an older iPad could choke the USB bus or drop frames.
+            /// Select the best format for Mac devices
             if self.isRunningOnMac() {
                 self.selectBestFormat(for: device)
             }
@@ -170,7 +168,7 @@ final class CaptureManager: NSObject {
         }
     }
 
-    // Selects the best format by pixel throughput
+    // Selects the best format, preferring 16:9 aspect ratios, then pixel throughput
     private func selectBestFormat(for device: AVCaptureDevice) {
         /// Get all formats the capture device supports (resolution, frame rate, pixel format)
         let formats = device.formats
@@ -186,6 +184,7 @@ final class CaptureManager: NSObject {
         var bestScore: Float64 = 0
         var bestRank: Int = -1
         var bestFourCC: String = ""
+        var bestIs16x9 = false
 
         for format in formats {
             let desc = format.formatDescription
@@ -214,11 +213,24 @@ final class CaptureManager: NSObject {
             let score = Float64(width) * Float64(height) * maxRate
             let rank = formatRank(fourCC)
 
+            /// Most HDMI sources are 16:9; a dongle's taller modes (1920×1200 etc.) can
+            /// out-score 1080p60 while its scaler squishes a 16:9 input to fit them
+            let is16x9 = (width * 9 == height * 16)
+
             formatGroups["\(width)×\(height) @ \(maxRate) fps", default: []].append(fourCC)
 
-            /// Keep this format if it beats the current best score,
-            /// or matches the score but has a preferred pixel format
-            if score > bestScore || (score == bestScore && rank > bestRank) {
+            /// Prefer 16:9 over other aspect ratios, then the best score,
+            /// then break score ties with the preferred pixel format
+            let candidateWins: Bool
+            if is16x9 != bestIs16x9 {
+                candidateWins = is16x9
+            } else if score != bestScore {
+                candidateWins = score > bestScore
+            } else {
+                candidateWins = rank > bestRank
+            }
+
+            if candidateWins {
                 bestFormat = format
                 bestWidth = width
                 bestHeight = height
@@ -226,6 +238,7 @@ final class CaptureManager: NSObject {
                 bestScore = score
                 bestRank = rank
                 bestFourCC = fourCC
+                bestIs16x9 = is16x9
             }
         }
         
