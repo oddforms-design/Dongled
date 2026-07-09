@@ -29,16 +29,14 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     private var trackedDeviceIDs = Set<String>()
     private var needsSessionRestart = false
     
-    #if targetEnvironment(macCatalyst)
-    // MARK: - Properties (Chrome Auto-Hide - Mac Catalyst)
+    // MARK: - Properties (Chrome Auto-Hide - Mac only)
     private var chromeHideTimer: Timer?
     private var isCursorHidden = false
     private let chromeHideDelay: TimeInterval = 3.0
 
     /// Activity assertion that keeps the display awake while capture is active.
-    /// - Remark: `UIApplication.isIdleTimerDisabled` does not prevent display sleep on Mac Catalyst.
+    /// - Remark: `UIApplication.isIdleTimerDisabled` does not prevent display sleep on Mac.
     private var displayAwakeToken: (any NSObjectProtocol)?
-    #endif
     
     override var prefersHomeIndicatorAutoHidden: Bool { true }
     override var prefersStatusBarHidden: Bool { isStatusBarHidden }
@@ -54,9 +52,13 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     // MARK: - Lifecycle
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-#if targetEnvironment(macCatalyst)
-        setupChromeAutoHide()  // Requires a key window in order to perform appearance modifications.
-#endif
+        setupChromeAutoHide()  // Mac only; requires a key window in order to perform appearance modifications.
+    }
+
+    // Keep the preview layer sized to the view through window resize (Mac) and rotation (iPad)
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        captureManager.layoutPreview(in: view)
     }
 
     // Initial setup for UI handling
@@ -85,10 +87,8 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
         let hasValidSession = captureManager.hasValidSession
         if needsSessionRestart {
             print("Forcing capture restart after background suspension.")
-#if targetEnvironment(macCatalyst)
             showChrome(forceTitlebarVisible: true)
             resetCursorHideTimer()
-#endif
             needsSessionRestart = false
             captureManager.authorizeCapture(from: self)
         } else if case .scanning = captureManager.state {
@@ -178,23 +178,23 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     }
 
     /// Keeps the display awake while capture is active.
-    /// On Mac Catalyst `UIApplication.isIdleTimerDisabled` does not block display sleep,
+    /// On Mac `UIApplication.isIdleTimerDisabled` does not block display sleep,
     /// so hold a `ProcessInfo` activity assertion with `.idleDisplaySleepDisabled` instead.
     private func setKeepDisplayAwake(_ awake: Bool) {
-#if targetEnvironment(macCatalyst)
-        if awake {
-            guard displayAwakeToken == nil else { return }
-            displayAwakeToken = ProcessInfo.processInfo.beginActivity(
-                options: [.idleDisplaySleepDisabled, .userInitiated],
-                reason: "Capturing video from external device"
-            )
-        } else if let token = displayAwakeToken {
-            ProcessInfo.processInfo.endActivity(token)
-            displayAwakeToken = nil
+        if captureManager.isRunningOnMac() {
+            if awake {
+                guard displayAwakeToken == nil else { return }
+                displayAwakeToken = ProcessInfo.processInfo.beginActivity(
+                    options: [.idleDisplaySleepDisabled, .userInitiated],
+                    reason: "Capturing video from external device"
+                )
+            } else if let token = displayAwakeToken {
+                ProcessInfo.processInfo.endActivity(token)
+                displayAwakeToken = nil
+            }
+        } else {
+            UIApplication.shared.isIdleTimerDisabled = awake
         }
-#else
-        UIApplication.shared.isIdleTimerDisabled = awake
-#endif
     }
 
     // Updates the UI for the given state
@@ -206,11 +206,9 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
                 self.setKeepDisplayAwake(false)
                 self.coverView.isHidden = false
                 self.noDeviceLabel.isHidden = false
-                
-                #if targetEnvironment(macCatalyst)
+
                 self.cancelCursorHideTimer()
-                #endif
-                
+
                 let camStatus = AVCaptureDevice.authorizationStatus(for: .video)
                 let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
                 
@@ -232,21 +230,17 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
                 self.noDeviceLabel.isHidden = false
                 self.noDeviceLabel.text = StatusText.connecting
                 self.activityIndicator.isHidden = false
-                
-                #if targetEnvironment(macCatalyst)
+
                 self.cancelCursorHideTimer()
-                #endif
-                
+
             case .active:
                 self.isStatusBarHidden = true
                 self.setKeepDisplayAwake(true)
                 self.coverView.isHidden = true
                 self.noDeviceLabel.isHidden = true
                 self.activityIndicator.isHidden = true
-                
-                #if targetEnvironment(macCatalyst)
+
                 self.resetCursorHideTimer()
-                #endif
             }
         }
     }
@@ -260,10 +254,10 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
         case .connecting:
             updateUI(for: .connecting)
         case .active(let connectedDeviceIDs):
-            #if targetEnvironment(macCatalyst)
-            connectedDeviceIDs.forEach { trackedDeviceIDs.update(with: $0) }
-            #endif
-            
+            if captureManager.isRunningOnMac() {
+                connectedDeviceIDs.forEach { trackedDeviceIDs.update(with: $0) }
+            }
+
             captureManager.attachPreview(to: self.view)
             /// Tiny delay to give the layer time to finish flipping over
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
@@ -281,32 +275,35 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
 }
 
 
-#if targetEnvironment(macCatalyst)
-// MARK: - UIPointerInteractionDelegate (Chrome Auto-Hide - Mac Catalyst)
+// MARK: - (Chrome Auto-Hide - Mac only)
 extension ViewController: UIPointerInteractionDelegate {
 
-    // MARK: - Chrome Auto-Hide Orchestration
-
     fileprivate func setupChromeAutoHide() {
+        guard captureManager.isRunningOnMac() else { return }
+
         let hover = UIHoverGestureRecognizer(target: self, action: #selector(handleHover(_:)))
         view.addGestureRecognizer(hover)
 
         let pointerInteraction = UIPointerInteraction(delegate: self)
         view.addInteraction(pointerInteraction)
 
-        /// Force a dark appearance so title text can remain readable over arbitrary video content.
-
+        /// Style the titlebar to overlay the video rather than sit above it
         guard let nsWindow = sharedKeyWindow else { return }
 
-        if let appearanceClass = NSClassFromString("NSAppearance") as? NSObject.Type {
-            let sel = NSSelectorFromString("appearanceNamed:")
-            let darkAqua = (appearanceClass as AnyObject)
-                .perform(sel, with: "NSAppearanceNameDarkAqua")?
-                .takeUnretainedValue()
-            nsWindow.setValue(darkAqua, forKey: "appearance")
-        } else {
-            print("Unable to force dark appearance.")
+        kvcSetIfSupported(nsWindow, "titlebarAppearsTransparent", true)
+
+        /// OR in NSWindow.StyleMask.fullSizeContentView (1 << 15)
+        if nsWindow.responds(to: NSSelectorFromString("styleMask")),
+           let styleMask = nsWindow.value(forKey: "styleMask") as? UInt {
+            kvcSetIfSupported(nsWindow, "styleMask", styleMask | (1 << 15))
         }
+
+        /// NSTitlebarSeparatorStyle.none = 1
+        kvcSetIfSupported(nsWindow, "titlebarSeparatorStyle", 1)
+
+        /// Never show the app name; only the window buttons take part in chrome show/hide
+        /// (NSWindow.TitleVisibility: 0 = visible, 1 = hidden)
+        kvcSetIfSupported(nsWindow, "titleVisibility", 1)
     }
 
     @objc private func handleHover(_ recognizer: UIHoverGestureRecognizer) {
@@ -320,6 +317,7 @@ extension ViewController: UIPointerInteractionDelegate {
     }
 
     fileprivate func resetCursorHideTimer() {
+        guard captureManager.isRunningOnMac() else { return }
         chromeHideTimer?.invalidate()
         chromeHideTimer = Timer.scheduledTimer(withTimeInterval: chromeHideDelay, repeats: false) { [weak self] _ in
             self?.hideChrome()
@@ -327,6 +325,7 @@ extension ViewController: UIPointerInteractionDelegate {
     }
 
     fileprivate func cancelCursorHideTimer() {
+        guard captureManager.isRunningOnMac() else { return }
         chromeHideTimer?.invalidate()
         chromeHideTimer = nil
         showChrome()
@@ -342,12 +341,7 @@ extension ViewController: UIPointerInteractionDelegate {
     }
 
     private func showChrome(forceTitlebarVisible: Bool = false) {
-        /// NOTE: If the app had hidden its chrome prior to being backgrounded, when the app returns
-        /// to the foreground, UIKit resets its own state — effectively restoring `title​Visibility` to
-        /// `.visible` and invalidates/resets the underlying `UIPointer​Interaction` so the
-        /// cursor reappears. However, the AppKit-level `hidden` property set directly on the
-        /// `NSButton` objects is not reset by the system.  To keep concerns as self-contained as
-        /// possible, allow callers to force our state to be coherent with UIKit.
+        guard captureManager.isRunningOnMac() else { return }
         if forceTitlebarVisible, !isCursorHidden {
             setTitlebarHidden(false)
             return
@@ -361,26 +355,21 @@ extension ViewController: UIPointerInteractionDelegate {
         setTitlebarHidden(false)
     }
 
-    // MARK: - UIPointerInteractionDelegate
+    // UIPointerInteractionDelegate
 
     func pointerInteraction(_ interaction: UIPointerInteraction, styleFor region: UIPointerRegion) -> UIPointerStyle? {
         return isCursorHidden ? .hidden() : nil
     }
 
-    // MARK: - Titlebar Visibility
+    // Titlebar Visibility
 
     private func setTitlebarHidden(_ hidden: Bool) {
-        guard let windowScene = view.window?.windowScene,
-              let titlebar = windowScene.titlebar else { return }
-
-        titlebar.titleVisibility = hidden ? .hidden : .visible
-
-        /// Hide/show standard window buttons (close, minimize, zoom) using Mac Catalyst method
-        /// See <https://developer.apple.com/forums/thread/769279>, <https://developer.apple.com/documentation/UIKit/mac-catalyst>.
+        /// Only show the window buttons, on a timer
+        guard let nsWindow = sharedKeyWindow else { return }
+        kvcSetIfSupported(nsWindow, "titleVisibility", 1)
 
         let buttonSel = NSSelectorFromString("standardWindowButton:")
-        guard let nsWindow = sharedKeyWindow,
-              nsWindow.responds(to: buttonSel) else { return }
+        guard nsWindow.responds(to: buttonSel) else { return }
 
         typealias ButtonIMP = @convention(c) (NSObject, Selector, Int) -> NSObject?
         let imp = nsWindow.method(for: buttonSel)
@@ -390,21 +379,32 @@ extension ViewController: UIPointerInteractionDelegate {
         /// (NSWindowCloseButton, NSWindowMiniaturizeButton, NSWindowZoomButton)
         for buttonType in 0...2 {
             if let button = buttonFunc(nsWindow, buttonSel, buttonType) {
-                button.setValue(hidden, forKey: "hidden")
+                kvcSetIfSupported(button, "hidden", hidden)
             }
         }
     }
 
     // MARK: - AppKit Helpers
 
+    /// Find the AppKit key window and double check if it is a genuine NSWindow before we try to edit the chrome via KVC
     private var sharedKeyWindow: NSObject? {
-        if let nsApp = NSClassFromString("NSApplication"),
+        guard let nsApp = NSClassFromString("NSApplication") as? NSObject.Type,
+              nsApp.responds(to: NSSelectorFromString("sharedApplication")),
               let sharedApp = nsApp.value(forKeyPath: "sharedApplication") as? NSObject,
-              let nsWindow = sharedApp.value(forKey: "keyWindow") as? NSObject {
-            nsWindow
-        } else {
-            nil
+              sharedApp.responds(to: NSSelectorFromString("keyWindow")),
+              let nsWindow = sharedApp.value(forKey: "keyWindow") as? NSObject,
+              let windowClass = NSClassFromString("NSWindow"),
+              nsWindow.isKind(of: windowClass) else { return nil }
+        return nsWindow
+    }
+
+    /// Sets a value via KVC only if the target implements the matching setter
+    private func kvcSetIfSupported(_ target: NSObject, _ key: String, _ value: Any) {
+        let setter = NSSelectorFromString("set\(key.prefix(1).uppercased())\(key.dropFirst()):")
+        guard target.responds(to: setter) else {
+            print("Chrome: target does not respond to \(key); skipping.")
+            return
         }
+        target.setValue(value, forKey: key)
     }
 }
-#endif

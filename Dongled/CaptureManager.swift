@@ -325,9 +325,6 @@ final class CaptureManager: NSObject {
         let layer = AVCaptureVideoPreviewLayer(session: session)
         previewLayer = layer
         layer.frame = view.bounds
-        #if targetEnvironment(macCatalyst)
-        layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]  // ensure the layer auto-resizes with the parent view.
-        #endif
         layer.videoGravity = .resizeAspect
         view.layer.insertSublayer(layer, at: 0)
         print("Starting Video Preview Layer.")
@@ -338,9 +335,17 @@ final class CaptureManager: NSObject {
                 previewLayer: layer
             )
         }
-
-        /// We need to turn off mirroring becuase we aren't using the front-facing camera
         transformPreviewLayer()
+    }
+
+    // Keeps the preview layer matched to its hosting view during window resize or rotation.
+    func layoutPreview(in view: UIView) {
+        guard let layer = previewLayer, layer.superlayer === view.layer else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        layer.bounds = view.bounds
+        layer.position = CGPoint(x: view.bounds.midX, y: view.bounds.midY)
+        CATransaction.commit()
     }
 
     // MARK: - macOS Picker Flow
@@ -437,7 +442,9 @@ final class CaptureManager: NSObject {
     }
 
     func isRunningOnMac() -> Bool {
-        return NSClassFromString("NSApplication") != nil
+        /// isiOSAppOnMac is the canonical check for iPad builds running on Apple Silicon;
+        /// keep the AppKit probe as a fallback for any Catalyst-style environment
+        return ProcessInfo.processInfo.isiOSAppOnMac || NSClassFromString("NSApplication") != nil
     }
 
     // MARK: - Public Helpers
@@ -492,22 +499,29 @@ final class CaptureManager: NSObject {
                   let layer = self.previewLayer,
                   let connection = layer.connection else { return }
 
-            /// Default mirroring off
-            layer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))
-
-            /// Rotation
             if self.isRunningOnMac() {
+                /// Mac: no layer transform. 
+                if connection.automaticallyAdjustsVideoMirroring {
+                    connection.automaticallyAdjustsVideoMirroring = false
+                }
+                if connection.isVideoMirroringSupported {
+                    connection.isVideoMirrored = false
+                }
+
                 /// The Mac window never physically rotates, so the upright angle is constant.
-                /// The coordinator is unreliable here across OS versions (newer macOS reports a
-                /// 180 offset), and the connection defaults to portrait (90), so pin landscape.
                 let macAngle: CGFloat = 0
                 if connection.isVideoRotationAngleSupported(macAngle) {
                     connection.videoRotationAngle = macAngle
                 }
-            } else if let coordinator = self.rotationCoordinator {
-                let angle = coordinator.videoRotationAngleForHorizonLevelPreview
-                if connection.isVideoRotationAngleSupported(angle) {
-                    connection.videoRotationAngle = angle
+            } else {
+                /// iPad: cancel default mirroring with a layer flip, rotate via the coordinator
+                layer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))
+
+                if let coordinator = self.rotationCoordinator {
+                    let angle = coordinator.videoRotationAngleForHorizonLevelPreview
+                    if connection.isVideoRotationAngleSupported(angle) {
+                        connection.videoRotationAngle = angle
+                    }
                 }
             }
 
