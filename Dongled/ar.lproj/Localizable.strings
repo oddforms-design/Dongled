@@ -5,3 +5,5 @@
 "picker.title" = "اختر إدخال الفيديو";
 "picker.message" = "اختر مصدر فيديو للبث.";
 "picker.cancel" = "إلغاء";
+"picker.audio.title" = "اختر إدخال الصوت";
+"picker.audio.message" = "اختر مصدر صوت للبث.";

@@ -5,3 +5,5 @@
 "picker.title" = "Selecciona la entrada de vídeo";
 "picker.message" = "Elige una fuente de vídeo para la transmisión.";
 "picker.cancel" = "Cancelar";
+"picker.audio.title" = "Selecciona la entrada de audio";
+"picker.audio.message" = "Elige una fuente de audio para la transmisión.";

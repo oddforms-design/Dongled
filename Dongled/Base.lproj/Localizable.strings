@@ -5,3 +5,5 @@
 "picker.title" = "Select Video Input";
 "picker.message" = "Choose a video source for the stream.";
 "picker.cancel" = "Cancel";
+"picker.audio.title" = "Select Audio Input";
+"picker.audio.message" = "Choose an audio source for the stream.";

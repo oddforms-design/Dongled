@@ -28,7 +28,8 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     private let captureManager = CaptureManager()
     private var trackedDeviceIDs = Set<String>()
     private var needsSessionRestart = false
-    // (Chrome Auto-Hide and Timer - Mac only)
+
+    // MARK: - Properties (Chrome Auto-Hide - Mac only)
     private var chromeHideTimer: Timer?
     private var isCursorHidden = false
     private let chromeHideDelay: TimeInterval = 3.0
@@ -46,6 +47,14 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     }
     
     // MARK: - Lifecycle
+    // Initial setup for UI handling
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        captureManager.delegate = self
+        view.backgroundColor = .black
+        registerNotifications()
+    }
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         setupChromeAutoHide()  // Mac only; requires a key window in order to perform appearance modifications.
@@ -55,14 +64,6 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         captureManager.layoutPreview(in: view)
-    }
-
-    // Initial setup for UI handling
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        captureManager.delegate = self
-        view.backgroundColor = .black
-        registerNotifications()
     }
     
     // MARK: - Notification Registration
@@ -262,6 +263,7 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     
     // MARK: - Cleanup
     
+    // Unsubscribes from notification observers
     deinit {
         print("ViewController deinitialized")
         NotificationCenter.default.removeObserver(self)
@@ -272,6 +274,7 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
 // MARK: - (Chrome Auto-Hide - Mac only)
 extension ViewController: UIPointerInteractionDelegate {
 
+    // Installs hover tracking and styles the titlebar to overlay the video
     fileprivate func setupChromeAutoHide() {
         guard captureManager.isRunningOnMac() else { return }
 
@@ -300,6 +303,7 @@ extension ViewController: UIPointerInteractionDelegate {
         kvcSetIfSupported(nsWindow, "titleVisibility", 1)
     }
 
+    // Shows the chrome and restarts the hide countdown on pointer movement
     @objc private func handleHover(_ recognizer: UIHoverGestureRecognizer) {
         switch recognizer.state {
         case .changed:
@@ -310,6 +314,7 @@ extension ViewController: UIPointerInteractionDelegate {
         }
     }
 
+    // Restarts the countdown to hide the chrome
     fileprivate func resetCursorHideTimer() {
         guard captureManager.isRunningOnMac() else { return }
         chromeHideTimer?.invalidate()
@@ -318,6 +323,7 @@ extension ViewController: UIPointerInteractionDelegate {
         }
     }
 
+    // Stops the hide countdown and shows the chrome
     fileprivate func cancelCursorHideTimer() {
         guard captureManager.isRunningOnMac() else { return }
         chromeHideTimer?.invalidate()
@@ -325,6 +331,7 @@ extension ViewController: UIPointerInteractionDelegate {
         showChrome()
     }
 
+    // Hides the cursor and window buttons
     private func hideChrome() {
         guard !isCursorHidden else { return }
         isCursorHidden = true
@@ -334,6 +341,7 @@ extension ViewController: UIPointerInteractionDelegate {
         setTitlebarHidden(true)
     }
 
+    // Restores the cursor and window buttons
     private func showChrome(forceTitlebarVisible: Bool = false) {
         guard captureManager.isRunningOnMac() else { return }
         if forceTitlebarVisible, !isCursorHidden {
@@ -349,14 +357,13 @@ extension ViewController: UIPointerInteractionDelegate {
         setTitlebarHidden(false)
     }
 
-    // UIPointerInteractionDelegate
+    // UIPointerInteractionDelegate: hides the pointer while the chrome is hidden
     func pointerInteraction(_ interaction: UIPointerInteraction, styleFor region: UIPointerRegion) -> UIPointerStyle? {
         return isCursorHidden ? .hidden() : nil
     }
 
-    // Titlebar Visibility
+    // Toggles the window buttons; the app title stays hidden permanently
     private func setTitlebarHidden(_ hidden: Bool) {
-        /// Only show the window buttons, on a timer
         guard let nsWindow = sharedKeyWindow else { return }
         kvcSetIfSupported(nsWindow, "titleVisibility", 1)
 

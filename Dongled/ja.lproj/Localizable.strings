@@ -5,3 +5,5 @@
 "picker.title" = "ビデオ入力を選択";
 "picker.message" = "ストリームに使用するビデオソースを選択してください。";
 "picker.cancel" = "キャンセル";
+"picker.audio.title" = "オーディオ入力を選択";
+"picker.audio.message" = "ストリームに使用するオーディオソースを選択してください。";

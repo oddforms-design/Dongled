@@ -5,3 +5,5 @@
 "picker.title" = "Videoeingang auswählen";
 "picker.message" = "Wählen Sie eine Videoquelle für den Stream.";
 "picker.cancel" = "Abbrechen";
+"picker.audio.title" = "Audioeingang auswählen";
+"picker.audio.message" = "Wählen Sie eine Audioquelle für den Stream.";

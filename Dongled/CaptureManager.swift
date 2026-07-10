@@ -29,6 +29,7 @@ final class CaptureManager: NSObject {
     private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
     private let audioManager = AudioManager()
     private weak var currentDevicePicker: UIAlertController?
+    private weak var presentingViewController: UIViewController?
     private var lastPresentedDeviceIdentifiers = Set<String>()
 
     // True while a session is running with at least one input
@@ -42,6 +43,7 @@ final class CaptureManager: NSObject {
     // MARK: - Authorize Capture
     // Start Here to always evaluate permissions before attempting anything
     func authorizeCapture(from viewController: UIViewController) {
+        presentingViewController = viewController
         let status = AVCaptureDevice.authorizationStatus(for: .video)
 
         switch status {
@@ -164,7 +166,13 @@ final class CaptureManager: NSObject {
 
             self.captureSession = session
             self.startSession()
-            self.audioManager.startEngineInputPassThrough()
+
+            /// Macs can have several USB audio devices; auto-select or ask the user
+            if self.isRunningOnMac() {
+                self.startAudioForMac()
+            } else {
+                self.audioManager.startEngineInputPassThrough()
+            }
         }
     }
 
@@ -238,8 +246,11 @@ final class CaptureManager: NSObject {
                     connection.isVideoMirrored = false
                 }
 
-                /// The Mac window never physically rotates, so the upright angle is constant.
-                let macAngle: CGFloat = 0
+                /// macOS 27 delivers the external stream rotated 180° relative to earlier releases
+                var macAngle: CGFloat = 0
+                if #available(iOS 27.0, *) {
+                    macAngle = 180
+                }
                 if connection.isVideoRotationAngleSupported(macAngle) {
                     connection.videoRotationAngle = macAngle
                 }
@@ -372,6 +383,55 @@ final class CaptureManager: NSObject {
             }
             self.configureSession(with: device)
         }
+    }
+
+    // Starts audio with the lone USB input, or asks the user to pick between multiple
+    private func startAudioForMac() {
+        switch audioManager.audioInputChoice() {
+        case .automatic(let input):
+            audioManager.startEngineInputPassThrough(preferredInput: input)
+        case .userSelection(let inputs):
+            DispatchQueue.main.async { self.presentAudioPicker(for: inputs) }
+        }
+    }
+
+    // Simple picker UI for choosing between multiple USB audio inputs
+    private func presentAudioPicker(for inputs: [AVAudioSessionPortDescription]) {
+        guard let viewController = presentingViewController else {
+            /// No UI to ask with; fall back to the first-match heuristic
+            audioManager.startEngineInputPassThrough()
+            return
+        }
+
+        let alert = UIAlertController(
+            title: NSLocalizedString("picker.audio.title", comment: "Title for the audio input picker on macOS."),
+            message: NSLocalizedString("picker.audio.message", comment: "Message shown in the audio input picker on macOS."),
+            preferredStyle: .actionSheet
+        )
+
+        for input in inputs {
+            let action = UIAlertAction(title: input.portName, style: .default) { [weak self] _ in
+                print("Audio Input Selected: \(input.portName)")
+                self?.audioManager.startEngineInputPassThrough(preferredInput: input)
+            }
+            alert.addAction(action)
+        }
+
+        let cancelAction = UIAlertAction(title: NSLocalizedString("picker.cancel", comment: "Cancel action for the video input picker."), style: .cancel, handler: nil)
+        alert.addAction(cancelAction)
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = viewController.view
+            popover.sourceRect = CGRect(
+                x: viewController.view.bounds.midX,
+                y: viewController.view.bounds.midY,
+                width: 0,
+                height: 0
+            )
+            popover.permittedArrowDirections = []
+        }
+
+        viewController.present(alert, animated: true)
     }
 
     // Attempt to select the best format, preferring 16:9 aspect ratios, then pixel throughput

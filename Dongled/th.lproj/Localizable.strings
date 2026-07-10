@@ -5,3 +5,5 @@
 "picker.title" = "เลือกอินพุตวิดีโอ";
 "picker.message" = "เลือกแหล่งวิดีโอสำหรับการสตรีม";
 "picker.cancel" = "ยกเลิก";
+"picker.audio.title" = "เลือกอินพุตเสียง";
+"picker.audio.message" = "เลือกแหล่งเสียงสำหรับการสตรีม";

@@ -13,29 +13,38 @@ final class AudioManager: NSObject {
 
     private let audioQueue = DispatchQueue(label: "com.Dongled.audioQueue", qos: .userInitiated)
     private var audioEngine: AVAudioEngine?
+    /// External displays enumerate as USB audio; never auto-select them
+    private static let blockedNames = ["Display"]
+
+    /// How the audio input gets chosen on macOS
+    enum InputChoice {
+        case automatic(AVAudioSessionPortDescription?)
+        case userSelection([AVAudioSessionPortDescription])
+    }
 
     // MARK: - Audio Lifecycle
 
-    // Selects the USB audio input and starts audio pass-through to the current output
-    internal func startEngineInputPassThrough() {
+    // Auto-selects a lone USB capture input; multiple candidates defer to the user
+    func audioInputChoice() -> InputChoice {
+        guard let session = activateSession(), let inputs = session.availableInputs else {
+            return .automatic(nil)
+        }
+        let usbInputs = inputs.filter { $0.portType == .usbAudio }
+        let candidates = usbInputs.filter { input in
+            !Self.blockedNames.contains { input.portName.localizedCaseInsensitiveContains($0) }
+        }
+        if candidates.count == 1 { return .automatic(candidates[0]) }
+        if candidates.count > 1 { return .userSelection(usbInputs) }
+        return .automatic(nil)
+    }
+
+    // Starts audio pass-through with the given input, or the first USB input that isn't a display
+    internal func startEngineInputPassThrough(preferredInput: AVAudioSessionPortDescription? = nil) {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
 
-            let session = AVAudioSession.sharedInstance()
-
-            do {
-                try session.setCategory(
-                    .playAndRecord,
-                    mode: .default,
-                    options: [.mixWithOthers, .allowBluetoothA2DP]
-                )
-                try session.setActive(true)
-                try session.overrideOutputAudioPort(.none)
-                print("Starting AVAudio Pass-Through.")
-            } catch {
-                print("AVAudioSession setup failed: \(error)")
-                return
-            }
+            guard let session = self.activateSession() else { return }
+            print("Starting AVAudio Pass-Through.")
 
             /// Check for nil input
             guard let availableInputs = session.availableInputs else {
@@ -43,11 +52,10 @@ final class AudioManager: NSObject {
                 return
             }
 
-            /// USB audio only on MacOS try to filter out display microphones
-            let blockedNames = ["Display"]
-            guard let usbInput = availableInputs.first(where: { input in
+            /// Use the caller's pick, else USB audio only filtering out display microphones
+            guard let usbInput = preferredInput ?? availableInputs.first(where: { input in
                 input.portType == .usbAudio &&
-                !blockedNames.contains(where: { input.portName.localizedCaseInsensitiveContains($0) })
+                !Self.blockedNames.contains(where: { input.portName.localizedCaseInsensitiveContains($0) })
             }) else {
                 print("No USB audio input found. Blocking audio engine startup.")
                 return
@@ -98,6 +106,24 @@ final class AudioManager: NSObject {
                 print("Failed to start AVAudioEngine: \(error)")
             }
         }
+    }
+
+    // Configures and activates the shared audio session
+    private func activateSession() -> AVAudioSession? {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(
+                .playAndRecord,
+                mode: .default,
+                options: [.mixWithOthers, .allowBluetoothA2DP]
+            )
+            try session.setActive(true)
+            try session.overrideOutputAudioPort(.none)
+        } catch {
+            print("AVAudioSession setup failed: \(error)")
+            return nil
+        }
+        return session
     }
 
     // Stops the audio engine and deactivates the audio session

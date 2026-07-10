@@ -5,3 +5,5 @@
 "picker.title" = "Videobemenet kiválasztása";
 "picker.message" = "Válassz videóforrást a közvetítéshez.";
 "picker.cancel" = "Mégse";
+"picker.audio.title" = "Hangbemenet kiválasztása";
+"picker.audio.message" = "Válassz hangforrást a közvetítéshez.";
