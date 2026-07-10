@@ -16,6 +16,7 @@ final class AudioManager: NSObject {
 
     // MARK: - Audio Lifecycle
 
+    // Selects the USB audio input and starts audio pass-through to the current output
     internal func startEngineInputPassThrough() {
         audioQueue.async { [weak self] in
             guard let self = self else { return }
@@ -99,6 +100,7 @@ final class AudioManager: NSObject {
         }
     }
 
+    // Stops the audio engine and deactivates the audio session
     internal func stopEnginePassThrough() {
         audioQueue.async { [weak self] in
             guard let self = self else { return }

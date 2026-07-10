@@ -28,14 +28,10 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     private let captureManager = CaptureManager()
     private var trackedDeviceIDs = Set<String>()
     private var needsSessionRestart = false
-    
-    // MARK: - Properties (Chrome Auto-Hide - Mac only)
+    // (Chrome Auto-Hide and Timer - Mac only)
     private var chromeHideTimer: Timer?
     private var isCursorHidden = false
     private let chromeHideDelay: TimeInterval = 3.0
-
-    /// Activity assertion that keeps the display awake while capture is active.
-    /// - Remark: `UIApplication.isIdleTimerDisabled` does not prevent display sleep on Mac.
     private var displayAwakeToken: (any NSObjectProtocol)?
     
     override var prefersHomeIndicatorAutoHidden: Bool { true }
@@ -178,8 +174,6 @@ final class ViewController: UIViewController, CaptureManagerDelegate {
     }
 
     /// Keeps the display awake while capture is active.
-    /// On Mac `UIApplication.isIdleTimerDisabled` does not block display sleep,
-    /// so hold a `ProcessInfo` activity assertion with `.idleDisplaySleepDisabled` instead.
     private func setKeepDisplayAwake(_ awake: Bool) {
         if captureManager.isRunningOnMac() {
             if awake {
@@ -301,7 +295,7 @@ extension ViewController: UIPointerInteractionDelegate {
         /// NSTitlebarSeparatorStyle.none = 1
         kvcSetIfSupported(nsWindow, "titlebarSeparatorStyle", 1)
 
-        /// Never show the app name; only the window buttons take part in chrome show/hide
+        /// Hide the app name; only the window buttons take part in chrome show/hide
         /// (NSWindow.TitleVisibility: 0 = visible, 1 = hidden)
         kvcSetIfSupported(nsWindow, "titleVisibility", 1)
     }
@@ -356,13 +350,11 @@ extension ViewController: UIPointerInteractionDelegate {
     }
 
     // UIPointerInteractionDelegate
-
     func pointerInteraction(_ interaction: UIPointerInteraction, styleFor region: UIPointerRegion) -> UIPointerStyle? {
         return isCursorHidden ? .hidden() : nil
     }
 
     // Titlebar Visibility
-
     private func setTitlebarHidden(_ hidden: Bool) {
         /// Only show the window buttons, on a timer
         guard let nsWindow = sharedKeyWindow else { return }
@@ -375,8 +367,7 @@ extension ViewController: UIPointerInteractionDelegate {
         let imp = nsWindow.method(for: buttonSel)
         let buttonFunc = unsafeBitCast(imp, to: ButtonIMP.self)
 
-        /// The value space (0...2) is a set representing the NSWindowButton enumeration:
-        /// (NSWindowCloseButton, NSWindowMiniaturizeButton, NSWindowZoomButton)
+        /// The value space (0...2) is a set representing the NSWindowButtons
         for buttonType in 0...2 {
             if let button = buttonFunc(nsWindow, buttonSel, buttonType) {
                 kvcSetIfSupported(button, "hidden", hidden)
